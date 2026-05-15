@@ -200,9 +200,23 @@ export const initFileStorage = async () => {
 
     // Check permission silently (won't prompt user)
     let perm = await handle.queryPermission({ mode: 'readwrite' });
+    
     if (perm === 'prompt') {
-      // Request permission — this requires a user gesture, so we defer
-      perm = await handle.requestPermission({ mode: 'readwrite' });
+      // Browser requires a user gesture (click) to show the prompt.
+      // Wait for the user's first click anywhere on the page.
+      perm = await new Promise(resolve => {
+        const onFirstClick = async () => {
+          window.removeEventListener('click', onFirstClick, true);
+          try {
+            const p = await handle.requestPermission({ mode: 'readwrite' });
+            resolve(p);
+          } catch (e) {
+            resolve('denied');
+          }
+        };
+        // Use capture phase to ensure we catch it early
+        window.addEventListener('click', onFirstClick, true);
+      });
     }
 
     if (perm === 'granted') {
@@ -211,6 +225,9 @@ export const initFileStorage = async () => {
       // Load file data into localStorage
       await loadFileDataIntoLocalStorage();
       window.dispatchEvent(new CustomEvent('file-connected', { detail: { name: handle.name } }));
+      
+      // If any local changes happened before this click, sync them to the file now
+      writeToFile();
     }
   } catch (err) {
     console.warn('[DB] Could not restore file handle:', err);
