@@ -1,0 +1,177 @@
+:root {
+  /* Bento Box Theme */
+  --primary: #9ce2a6; /* Pastel green */
+  --primary-hover: #86c490;
+  --bg-main: #e0e5dd; /* Soft sage/grey background */
+  --bg-surface: #ffffff;
+  --text-main: #1a1a1a;
+  --text-muted: #8b929c;
+  --border-color: #f1f3f1;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --info: #bda6ff; /* Soft purple */
+  --pink: #ffb3c6;
+  --chart-bg: #ffffff;
+  
+  /* Sidebar */
+  --sidebar-bg: #e0e5dd;
+  --sidebar-text: #1a1a1a;
+  --sidebar-text-muted: #8b929c;
+  --sidebar-border: transparent;
+  
+  --card-radius: 32px;
+}
+
+[data-theme="dark"] {
+  /* Dark Theme */
+  --primary: #818cf8;
+  --primary-hover: #6366f1;
+  --bg-main: #0f172a;
+  --bg-surface: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+  --chart-bg: #0f172a;
+  
+  /* Sidebar */
+  --sidebar-bg: #1e293b;
+  --sidebar-text: #f8fafc;
+  --sidebar-text-muted: #94a3b8;
+  --sidebar-border: #334155;
+}
+
+[data-theme="gold"] {
+  /* Multi-shade Gold Theme (Premium) */
+  --primary: #d4af37;
+  --primary-hover: #c59b5f;
+  --bg-main: #121212;
+  --bg-surface: #1e1e1e;
+  --text-main: #ffffff;
+  --text-muted: #a0a0a0;
+  --border-color: #333333;
+  --chart-bg: #121212;
+
+  /* Sidebar */
+  --sidebar-bg: #1a1a1a;
+  --sidebar-text: #ffffff;
+  --sidebar-text-muted: #a0a0a0;
+  --sidebar-border: #333333;
+}
+
+[data-theme="sapphire"] {
+  /* Premium Midnight Sapphire Theme */
+  --primary: #38bdf8; /* Electric Blue */
+  --primary-hover: #0ea5e9;
+  --bg-main: #020617; /* Deep Navy Black */
+  --bg-surface: #0f172a; /* Slate 900 */
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-color: #1e293b;
+  --chart-bg: #020617;
+
+  /* Sidebar */
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #f8fafc;
+  --sidebar-text-muted: #94a3b8;
+  --sidebar-border: #1e293b;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s, color 0.3s;
+  overflow-x: hidden;
+}
+
+/* Hide scrollbars globally but keep functionality */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge */
+}
+
+/* Utilities */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.w-full { width: 100%; }
+.h-screen { height: 100vh; }
+
+.glass-panel {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+  transition: background-color 0.3s, border-color 0.3s, transform 0.2s;
+}
+
+.input-field {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s;
+}
+.input-field:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulseGlow {
+  0% { filter: drop-shadow(0px 0px 10px rgba(186, 146, 86, 0.2)); transform: scale(1); }
+  50% { filter: drop-shadow(0px 0px 40px rgba(186, 146, 86, 0.8)); transform: scale(1.05); }
+  100% { filter: drop-shadow(0px 0px 10px rgba(186, 146, 86, 0.2)); transform: scale(1); }
+}
+
+@keyframes loadingProgress {
+  0% { width: 0%; }
+  40% { width: 60%; }
+  100% { width: 100%; }
+}
