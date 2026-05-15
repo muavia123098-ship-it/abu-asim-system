@@ -340,7 +340,7 @@ export default function Settings() {
             </div>
             <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.6rem', fontWeight: '800' }}>Restore System Data?</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '1rem' }}>
-              Dhiyaan dein! Is backup ko restore karne se aapka <strong style={{ color: '#ef4444' }}>मौजूदा सारा डेटा (Current Data) डिलीट</strong> ho jayega aur backup file wala data load ho jayega.
+              Dhiyaan dein! Is backup ko restore karne se aapka <strong style={{ color: '#ef4444' }}>mojooda sara data (Current Data) delete</strong> ho jayega aur backup file wala data load ho jayega.
             </p>
             <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '12px', marginBottom: '2rem' }}>
                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Backup Created On</div>
