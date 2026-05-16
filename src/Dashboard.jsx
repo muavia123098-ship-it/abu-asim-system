@@ -26,8 +26,11 @@ export default function Dashboard() {
     lowStockCount: 0,
     totalStockValue: 0,
     totalPurchases: 0,
+    totalAllPurchases: 0,
     totalCashSales: 0,
-    totalAllExpenses: 0
+    totalCashSalesForPeriod: 0,
+    totalAllExpenses: 0,
+    totalDue: 0
   });
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [salesData, setSalesData] = useState([]);
@@ -61,12 +64,9 @@ export default function Dashboard() {
       const filteredSales = allSales.filter(s => s.date >= startDate && s.date <= endDate);
       
       const totalRevenue = filteredSales.reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
-      const totalProfit = filteredSales.reduce((sum, s) => sum + (parseFloat(s.profit) || 0), 0);
-
       setStats(prev => ({
         ...prev,
         totalSales: totalRevenue,
-        grossProfit: totalProfit,
         totalOrders: filteredSales.length
       }));
 
@@ -145,24 +145,48 @@ export default function Dashboard() {
     });
 
     const unsubPurchases = onSnapshot(query(collection(db, 'purchases'), where('userId', '==', user.uid)), (snapshot) => {
-      const allPurchases = snapshot.docs.map(doc => ({ ...doc.data(), date: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date() }));
-      const filteredPurchases = allPurchases.filter(p => p.date >= startDate && p.date <= endDate);
+      const allPurchases = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let pDate = new Date();
+        if (data.date) {
+          const [y, m, d] = data.date.split('-').map(Number);
+          pDate = new Date(y, m - 1, d);
+        } else if (data.createdAt?.toDate) {
+          pDate = data.createdAt.toDate();
+        }
+        return { ...data, pDate };
+      });
+      const filteredPurchases = allPurchases.filter(p => p.pDate >= startDate && p.pDate <= endDate);
       const totalPurch = filteredPurchases.reduce((sum, p) => sum + (parseFloat(p.totalCost) || 0), 0);
-      setStats(prev => ({ ...prev, totalPurchases: totalPurch }));
+      const totalAllPurch = allPurchases.reduce((sum, p) => sum + (parseFloat(p.totalCost) || 0), 0);
+      setStats(prev => ({ ...prev, totalPurchases: totalPurch, totalAllPurchases: totalAllPurch }));
     });
 
-    // CUMULATIVE CASH IN HAND
-    const unsubPayments = onSnapshot(query(collection(db, 'payments'), where('userId', '==', user.uid), where('method', '==', 'Cash')), (snapshot) => {
-      const total = snapshot.docs.reduce((sum, doc) => sum + (parseFloat(doc.data().amount) || 0), 0);
-      setStats(prev => ({ ...prev, totalCashSales: total }));
+    // PERIOD CASH SALES & DUE AMOUNT
+    const unsubPaymentsForPeriod = onSnapshot(query(collection(db, 'payments'), where('userId', '==', user.uid), where('method', '==', 'Cash')), (snapshot) => {
+      const allPayments = snapshot.docs.map(doc => ({ ...doc.data(), date: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date() }));
+      const filteredPayments = allPayments.filter(p => p.date >= startDate && p.date <= endDate);
+      
+      const totalCashForPeriod = filteredPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      const totalAllCashSales = allPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      
+      setStats(prev => ({ 
+        ...prev, 
+        totalCashSalesForPeriod: totalCashForPeriod, 
+        totalCashSales: totalAllCashSales 
+      }));
     });
 
     const unsubAllExpenses = onSnapshot(query(collection(db, 'expenses'), where('userId', '==', user.uid)), (snapshot) => {
-      const total = snapshot.docs.reduce((sum, doc) => sum + (parseFloat(doc.data().amount) || 0), 0);
-      setStats(prev => ({ ...prev, totalAllExpenses: total }));
+      const allExpenses = snapshot.docs.map(doc => ({ ...doc.data(), date: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date() }));
+      const filteredExpenses = allExpenses.filter(e => e.date >= startDate && e.date <= endDate);
+      const totalExp = filteredExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+      const totalAllExp = allExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+      
+      setStats(prev => ({ ...prev, totalExpenses: totalExp, totalAllExpenses: totalAllExp }));
     });
 
-    return () => { unsubSales(); unsubProducts(); unsubCustomers(); unsubExpenses(); unsubPurchases(); unsubPayments(); unsubAllExpenses(); };
+    return () => { unsubSales(); unsubProducts(); unsubCustomers(); unsubExpenses(); unsubPurchases(); unsubPaymentsForPeriod(); unsubAllExpenses(); };
   }, [period, selectedDate, selectedMonth, selectedYear]);
 
   return (
@@ -282,12 +306,27 @@ export default function Dashboard() {
           </div>
 
           <div style={{ gridColumn: 'span 5', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div className="glass-panel" style={{ padding: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderLeft: '5px solid #22c55e', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
+            <div className="glass-panel" style={{ 
+              padding: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+              borderLeft: '5px solid #22c55e', backgroundColor: 'rgba(34, 197, 94, 0.05)' 
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
                 <Wallet size={20} color="#22c55e" />
                 <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Cash in Hand</div>
               </div>
-              <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#22c55e' }}>PKR {(stats.totalCashSales - stats.totalAllExpenses).toLocaleString()}</div>
+              <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#22c55e' }}>
+                PKR {(stats.totalCashSales - (stats.totalAllPurchases || 0) - stats.totalAllExpenses).toLocaleString()}
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderLeft: '5px solid #f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.05)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                <AlertCircle size={20} color="#f59e0b" />
+                <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Due Amount</div>
+              </div>
+              <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#f59e0b' }}>
+                PKR {(stats.totalSales - stats.totalCashSalesForPeriod).toLocaleString()}
+              </div>
             </div>
 
             <div className="glass-panel" style={{ padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderLeft: '5px solid var(--primary)' }}>
@@ -300,8 +339,10 @@ export default function Dashboard() {
 
             <div className="glass-panel" style={{ padding: '2rem', backgroundColor: 'var(--primary)', color: '#1a1a1a', flex: 1, position: 'relative', overflow: 'hidden' }}>
               <div style={{ fontSize: '1rem', fontWeight: '600', opacity: 0.7 }}>Net Profit</div>
-              <div style={{ fontSize: '2.5rem', fontWeight: '900', margin: '0.5rem 0' }}>PKR {(stats.grossProfit - stats.totalExpenses).toLocaleString()}</div>
-              <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Gross Profit - Expenses (Asal Munafa)</p>
+              <div style={{ fontSize: '2.5rem', fontWeight: '900', margin: '0.5rem 0' }}>
+                PKR {(stats.totalCashSalesForPeriod - stats.totalPurchases - stats.totalExpenses).toLocaleString()}
+              </div>
+              <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Cash Received - (Purchases + Expenses)</p>
             </div>
           </div>
 
