@@ -13,17 +13,14 @@ import Employees from './Employees';
 import Settings from './Settings';
 import SplashScreen from './SplashScreen';
 import ErrorBoundary from './ErrorBoundary';
-import PinScreen from './PinScreen';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
-  const [isLocked, setIsLocked] = useState(true);
 
   return (
     <ErrorBoundary>
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
-      {!showSplash && isLocked && <PinScreen onUnlock={() => setIsLocked(false)} />}
-      <div style={{ opacity: showSplash || isLocked ? 0 : 1, visibility: showSplash || isLocked ? 'hidden' : 'visible', transition: 'opacity 0.5s ease-in', height: '100vh', width: '100vw' }}>
+      <div style={{ opacity: showSplash ? 0 : 1, visibility: showSplash ? 'hidden' : 'visible', transition: 'opacity 0.5s ease-in', height: '100vh', width: '100vw' }}>
         <Router>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

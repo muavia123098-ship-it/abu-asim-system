@@ -12,9 +12,7 @@ export default function Settings() {
     businessName: 'Abu Asim Perfumery',
     currency: 'PKR',
     invoiceNote: 'Thank you for shopping with us!',
-    lowStockThreshold: 5,
-    appLockEnabled: false,
-    appPin: ''
+    lowStockThreshold: 5
   });
   const [isLoading, setIsLoading] = useState(false);
   const [backupLoading, setBackupLoading] = useState(false);
@@ -231,41 +229,6 @@ export default function Settings() {
               <button disabled={isLoading} onClick={handleSave} className="btn-primary" style={{ marginTop: 'auto', justifyContent: 'center', padding: '0.7rem', fontSize: '0.85rem', flexShrink: 0 }}>
                 <Save size={16} /> {isLoading ? 'Saving...' : 'Save Settings'}
               </button>
-            </div>
-          </div>
-
-          {/* Security Settings */}
-          <div className="glass-panel" style={{ padding: '1.2rem', border: settings.appLockEnabled ? '1px solid rgba(212,175,55,0.5)' : '1px solid var(--border-color)' }}>
-            <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}>
-               <ShieldCheck size={16} color={settings.appLockEnabled ? 'var(--primary)' : 'var(--text-muted)'} /> 
-               App Security
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer' }}>
-                <input 
-                  type="checkbox" 
-                  checked={settings.appLockEnabled} 
-                  onChange={e => setSettings({...settings, appLockEnabled: e.target.checked})}
-                  style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', cursor: 'pointer' }}
-                />
-                <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Enable PIN Lock</span>
-              </label>
-
-              {settings.appLockEnabled && (
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem' }}>4-Digit Security PIN</label>
-                  <input 
-                    type="text" 
-                    maxLength="4"
-                    className="input-field w-full" 
-                    style={{ padding: '0.6rem 0.8rem', fontSize: '1.2rem', letterSpacing: '8px', textAlign: 'center', fontWeight: 'bold' }} 
-                    placeholder="1234"
-                    value={settings.appPin} 
-                    onChange={e => setSettings({...settings, appPin: e.target.value.replace(/\D/g, '')})} 
-                  />
-                  <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: '0.5rem 0 0 0', lineHeight: '1.3' }}>Yeh PIN app kholne se pehle maanga jayega.</p>
-                </div>
-              )}
             </div>
           </div>
         </div>
