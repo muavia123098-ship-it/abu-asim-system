@@ -3,7 +3,7 @@ import Layout from './Layout';
 import { 
   Search, Plus, X, Box, Tag, DollarSign, Package, 
   AlertTriangle, Edit3, Trash2, Filter, Image as ImageIcon,
-  FlaskConical, Briefcase, BarChart2
+  FlaskConical, Briefcase, BarChart2, Upload
 } from 'lucide-react';
 import { db, auth, collection, addDoc, onSnapshot, query, where, serverTimestamp, updateDoc, doc, deleteDoc } from './db';
 
@@ -54,6 +54,40 @@ export default function Products() {
     setFormData(product);
     setEditingId(product.id);
     setIsModalOpen(true);
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 400; // Resize to max 400px to save local storage space
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height && width > MAX_SIZE) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        } else if (height > MAX_SIZE) {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setFormData({ ...formData, imageUrl: dataUrl });
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
@@ -266,8 +300,17 @@ export default function Products() {
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.8rem', display: 'block', marginBottom: '0.5rem' }}>Image URL (Optional)</label>
-                  <input className="input-field w-full" value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} placeholder="https://..." />
+                  <label style={{ fontSize: '0.8rem', display: 'block', marginBottom: '0.5rem' }}>Product Image (URL or Upload from Device)</label>
+                  <div style={{ display: 'flex', gap: '0.8rem' }}>
+                    <input className="input-field" style={{ flex: 1 }} value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} placeholder="Paste URL or click Upload..." />
+                    <label className="btn-primary" style={{ padding: '0 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '10px', margin: 0 }}>
+                      <Upload size={16} /> Upload Image
+                      <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
+                    </label>
+                  </div>
+                  {formData.imageUrl && formData.imageUrl.startsWith('data:image') && (
+                    <div style={{ fontSize: '0.7rem', color: 'var(--success)', marginTop: '0.4rem' }}>✓ Image loaded successfully</div>
+                  )}
                 </div>
 
                 <button type="submit" disabled={isLoading} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '1rem', marginTop: '1rem' }}>

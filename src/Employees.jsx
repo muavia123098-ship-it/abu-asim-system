@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from './Layout';
 import { 
   Users, UserPlus, Shield, DollarSign, Trash2, Edit3, 
-  Search, CheckCircle, X, BadgeCheck, UserCog 
+  Search, CheckCircle, X, BadgeCheck, UserCog, Upload, Image as ImageIcon
 } from 'lucide-react';
 import { db, auth, collection, addDoc, onSnapshot, query, where, serverTimestamp, updateDoc, doc, deleteDoc } from './db';
 
@@ -13,7 +13,7 @@ export default function Employees() {
   const [searchTerm, setSearchTerm] = useState('');
   
   // Form State
-  const [formData, setFormData] = useState({ name: '', role: 'Staff', salary: '', phone: '' });
+  const [formData, setFormData] = useState({ name: '', role: 'Staff', salary: '', phone: '', imageUrl: '' });
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
@@ -49,8 +49,42 @@ export default function Employees() {
     finally { setIsLoading(false); }
   };
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 400;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height && width > MAX_SIZE) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        } else if (height > MAX_SIZE) {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setFormData({ ...formData, imageUrl: dataUrl });
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleEdit = (emp) => {
-    setFormData({ name: emp.name, role: emp.role, salary: emp.salary, phone: emp.phone });
+    setFormData({ name: emp.name, role: emp.role, salary: emp.salary, phone: emp.phone, imageUrl: emp.imageUrl || '' });
     setEditingId(emp.id);
     setIsModalOpen(true);
   };
@@ -70,7 +104,7 @@ export default function Employees() {
             <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: '800' }}>Staff Management</h1>
             <p style={{ color: 'var(--text-muted)' }}>Manage your team and their access roles.</p>
           </div>
-          <button className="btn-primary" onClick={() => { setEditingId(null); setFormData({ name: '', role: 'Staff', salary: '', phone: '' }); setIsModalOpen(true); }}>
+          <button className="btn-primary" onClick={() => { setEditingId(null); setFormData({ name: '', role: 'Staff', salary: '', phone: '', imageUrl: '' }); setIsModalOpen(true); }}>
             <UserPlus size={20} /> Add Employee
           </button>
         </div>
@@ -96,13 +130,22 @@ export default function Employees() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
           {employees.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()) || e.role.toLowerCase().includes(searchTerm.toLowerCase())).map(emp => (
             <div key={emp.id} className="glass-panel" style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: 0, right: 0, padding: '0.5rem 1rem', backgroundColor: emp.role === 'Admin' ? 'var(--primary)' : 'rgba(255,255,255,0.05)', color: emp.role === 'Admin' ? 'white' : 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 'bold', borderBottomLeftRadius: '12px' }}>
+              <div style={{ 
+                position: 'absolute', top: 0, right: 0, padding: '0.5rem 1rem', 
+                backgroundColor: emp.role === 'Admin' ? '#d4af37' : emp.role === 'Staff' ? '#6b7280' : 'rgba(255,255,255,0.05)', 
+                color: emp.role === 'Admin' ? 'black' : 'white', 
+                fontSize: '0.7rem', fontWeight: 'bold', borderBottomLeftRadius: '12px' 
+              }}>
                 {emp.role.toUpperCase()}
               </div>
               
               <div style={{ display: 'flex', gap: '1.2rem', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <div style={{ width: '56px', height: '56px', backgroundColor: 'var(--bg-main)', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-                  {emp.role === 'Admin' ? <Shield size={28} /> : <Users size={28} />}
+                <div style={{ width: '56px', height: '56px', backgroundColor: 'var(--bg-main)', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', overflow: 'hidden' }}>
+                  {emp.imageUrl ? (
+                    <img src={emp.imageUrl} alt={emp.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    emp.role === 'Admin' ? <Shield size={28} /> : <Users size={28} />
+                  )}
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.2rem' }}>{emp.name}</h3>
@@ -113,7 +156,9 @@ export default function Employees() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div style={{ backgroundColor: 'rgba(0,0,0,0.1)', padding: '0.8rem', borderRadius: '10px' }}>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>MONTHLY SALARY</div>
-                  <div style={{ fontWeight: 'bold', color: 'var(--success)' }}>PKR {parseFloat(emp.salary).toLocaleString()}</div>
+                  <div style={{ fontWeight: 'bold', color: 'var(--success)' }}>
+                    {emp.role === 'Admin' ? 'N/A (Owner)' : `PKR ${parseFloat(emp.salary).toLocaleString()}`}
+                  </div>
                 </div>
                 <div style={{ backgroundColor: 'rgba(0,0,0,0.1)', padding: '0.8rem', borderRadius: '10px' }}>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>ACCESS STATUS</div>
@@ -161,13 +206,24 @@ export default function Employees() {
                   </div>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>Monthly Salary</label>
-                    <input required type="number" className="input-field w-full" placeholder="PKR" value={formData.salary} onChange={e => setFormData({...formData, salary: e.target.value})} />
+                    <input required={formData.role !== 'Admin'} type="number" className="input-field w-full" placeholder={formData.role === 'Admin' ? 'Optional' : 'PKR'} value={formData.salary} onChange={e => setFormData({...formData, salary: e.target.value})} />
                   </div>
                 </div>
 
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>Phone Number</label>
                   <input className="input-field w-full" placeholder="03xx xxxxxxx" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>Profile Image (URL or Upload)</label>
+                  <div style={{ display: 'flex', gap: '0.8rem' }}>
+                    <input className="input-field" style={{ flex: 1 }} placeholder="Paste image URL..." value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
+                    <label className="btn-primary" style={{ padding: '0 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '10px', margin: 0 }}>
+                      <Upload size={16} /> Upload
+                      <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
+                    </label>
+                  </div>
                 </div>
 
                 <div style={{ marginTop: '1rem' }}>
