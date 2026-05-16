@@ -300,8 +300,8 @@ export default function Dashboard() {
 
             <div className="glass-panel" style={{ padding: '2rem', backgroundColor: 'var(--primary)', color: '#1a1a1a', flex: 1, position: 'relative', overflow: 'hidden' }}>
               <div style={{ fontSize: '1rem', fontWeight: '600', opacity: 0.7 }}>Net Profit</div>
-              <div style={{ fontSize: '2.5rem', fontWeight: '900', margin: '0.5rem 0' }}>PKR {(stats.totalSales - stats.totalPurchases - stats.totalExpenses).toLocaleString()}</div>
-              <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Sales - (Purchases + Expenses) for period</p>
+              <div style={{ fontSize: '2.5rem', fontWeight: '900', margin: '0.5rem 0' }}>PKR {(stats.grossProfit - stats.totalExpenses).toLocaleString()}</div>
+              <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Gross Profit - Expenses (Asal Munafa)</p>
             </div>
           </div>
 
