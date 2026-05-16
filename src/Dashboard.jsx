@@ -23,7 +23,8 @@ export default function Dashboard() {
     totalExpenses: 0,
     totalOrders: 0,
     totalCustomers: 0,
-    lowStockCount: 0
+    lowStockCount: 0,
+    totalStockValue: 0
   });
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [salesData, setSalesData] = useState([]);
@@ -114,7 +115,14 @@ export default function Dashboard() {
       const products = snapshot.docs.map(doc => doc.data());
       const low = products.filter(p => p.stock > 0 && p.stock <= p.minStock);
       const out = products.filter(p => p.stock <= 0);
-      setStats(prev => ({ ...prev, lowStockCount: low.length + out.length }));
+      
+      const stockValue = products.reduce((sum, p) => {
+        const qty = parseFloat(p.stock) || 0;
+        const cost = parseFloat(p.costPrice) || 0;
+        return sum + (qty > 0 ? qty * cost : 0);
+      }, 0);
+
+      setStats(prev => ({ ...prev, lowStockCount: low.length + out.length, totalStockValue: stockValue }));
       setLowStockProducts([
         ...out.map(p => ({ name: p.name, stock: p.stock, status: 'out' })),
         ...low.map(p => ({ name: p.name, stock: p.stock, status: 'low' }))
@@ -268,7 +276,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="glass-panel" style={{ gridColumn: 'span 4', padding: '1.5rem', borderBottom: `4px solid ${stats.lowStockCount > 0 ? 'var(--danger)' : 'var(--info)'}`, backgroundColor: stats.lowStockCount > 0 ? 'rgba(239,68,68,0.05)' : undefined }}>
+          <div className="glass-panel" style={{ gridColumn: 'span 3', padding: '1.5rem', borderBottom: `4px solid ${stats.lowStockCount > 0 ? 'var(--danger)' : 'var(--info)'}`, backgroundColor: stats.lowStockCount > 0 ? 'rgba(239,68,68,0.05)' : undefined }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
               {stats.lowStockCount > 0 && <AlertCircle size={14} color="var(--danger)" />}
               Low Stock
@@ -288,8 +296,8 @@ export default function Dashboard() {
             ))}
           </div>
 
-          <div className="glass-panel" style={{ gridColumn: 'span 4', padding: '1.5rem', borderBottom: '4px solid #a855f7' }}>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Top Products</div>
+          <div className="glass-panel" style={{ gridColumn: 'span 3', padding: '1.5rem', borderBottom: '4px solid #a855f7' }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Top Running Items</div>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginBottom: '0.8rem' }}>Sabse zyada bikne wale items (is period mein)</div>
             {topProducts.length === 0 ? (
               <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>Is period mein koi sale nahi</div>
@@ -301,9 +309,20 @@ export default function Dashboard() {
             ))}
           </div>
 
-          <div className="glass-panel" style={{ gridColumn: 'span 4', padding: '1.5rem', borderBottom: '4px solid var(--danger)' }}>
+          <div className="glass-panel" style={{ gridColumn: 'span 3', padding: '1.5rem', borderBottom: '4px solid var(--danger)' }}>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Total Expenses</div>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>PKR {stats.totalExpenses.toLocaleString()}</div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>PKR {stats.totalExpenses.toLocaleString()}</div>
+          </div>
+
+          <div className="glass-panel" style={{ gridColumn: 'span 3', padding: '1.5rem', borderBottom: '4px solid #3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.05)' }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Package size={14} color="#3b82f6" />
+              Current Stock Value
+            </div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-main)' }}>PKR {stats.totalStockValue.toLocaleString()}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', lineHeight: '1.4' }}>
+              Shop mein mojood total items ki purchase value
+            </div>
           </div>
 
         </div>
