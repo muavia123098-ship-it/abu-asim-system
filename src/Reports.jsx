@@ -21,6 +21,8 @@ export default function Reports() {
   const [sales, setSales] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [filteredData, setFilteredData] = useState({ 
     sales: 0, purchases: 0, expenses: 0, profit: 0, 
     orders: 0, productsSold: 0, cashSales: 0, creditSales: 0,
@@ -52,10 +54,20 @@ export default function Reports() {
       setExpenses(snapshot.docs.map(d => ({ ...d.data(), date: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : new Date() })));
     });
 
+    const unsubProducts = onSnapshot(query(collection(db, 'products'), where('userId', '==', user.uid)), (snapshot) => {
+      setProducts(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
+    const unsubCustomers = onSnapshot(query(collection(db, 'customers'), where('userId', '==', user.uid)), (snapshot) => {
+      setCustomers(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
     return () => {
       unsubSales();
       unsubPurchases();
       unsubExpenses();
+      unsubProducts();
+      unsubCustomers();
     };
   }, []);
 
@@ -81,7 +93,12 @@ export default function Reports() {
 
     const fSales = sales.filter(s => s.date >= startDate && s.date <= endDate);
     const fPurchases = purchases.filter(p => p.date >= startDate && p.date <= endDate);
-    const fExpenses = expenses.filter(e => e.date >= startDate && e.date <= endDate);
+    const fExpenses = expenses.filter(e => {
+      const inRange = e.date >= startDate && e.date <= endDate;
+      if (!inRange) return false;
+      if (period === 'Daily' && e.type === 'monthly') return false;
+      return true;
+    });
 
     const totalSales = fSales.reduce((sum, s) => sum + (s.total || 0), 0);
     const cashSales = fSales.filter(s => s.paymentMethod === 'Cash').reduce((sum, s) => sum + (s.total || 0), 0);
@@ -146,6 +163,85 @@ export default function Reports() {
     const cashSalesAmount = sales.filter(s => s.paymentMethod === 'Cash').reduce((sum, s) => sum + s.total, 0);
     const bankSalesAmount = sales.filter(s => s.paymentMethod !== 'Cash').reduce((sum, s) => sum + s.total, 0);
 
+    let topProductsByCategory = [];
+    let vipDebts = [];
+
+    if (period === 'Monthly') {
+      vipDebts = customers.filter(c => (c.balance || 0) > 0).sort((a,b) => b.balance - a.balance);
+      
+      const categorySales = {};
+      sales.forEach(s => {
+        (s.items || []).forEach(item => {
+          const prod = products.find(p => p.id === item.id);
+          const cat = prod?.category || 'Other';
+          if (!categorySales[cat]) categorySales[cat] = {};
+          if (!categorySales[cat][item.name]) categorySales[cat][item.name] = 0;
+          categorySales[cat][item.name] += item.quantity;
+        });
+      });
+
+      topProductsByCategory = Object.entries(categorySales).map(([cat, itemsObj]) => {
+        const sortedItems = Object.entries(itemsObj)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3);
+        return { category: cat, items: sortedItems };
+      }).filter(catObj => catObj.items.length > 0);
+    }
+
+    if (period === 'Yearly') {
+      const yearlyMonthlyStats = months.map((mName, idx) => {
+        const mSales = sales.filter(s => s.date.getMonth() === idx);
+        const mExpenses = expenses.filter(e => e.date.getMonth() === idx);
+        const mSalesTotal = mSales.reduce((sum, s) => sum + s.total, 0);
+        const mExpTotal = mExpenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
+        const mProfit = mSales.reduce((sum, s) => sum + (s.profit || 0), 0) - mExpTotal;
+        return { name: mName, sales: mSalesTotal, expenses: mExpTotal, profit: mProfit };
+      }).filter(m => m.sales > 0 || m.expenses > 0);
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+          {yearlyMonthlyStats.length > 0 ? (
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: '0.2rem', marginBottom: '0.5rem', color: '#333' }}>📅 MONTHLY BREAKDOWN</div>
+              {yearlyMonthlyStats.map(m => (
+                <div key={m.name} style={{ display: 'flex', flexDirection: 'column', marginBottom: '0.4rem', borderBottom: '1px dashed #eee', paddingBottom: '0.3rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                    <span>{m.name}</span>
+                    <span style={{ color: m.profit >= 0 ? '#166534' : '#d32f2f' }}>PKR {m.profit.toLocaleString()}</span>
+                  </div>
+                  <div style={{ fontSize: '0.65rem', color: '#666', display: 'flex', justifyContent: 'space-between', marginTop: '0.2rem' }}>
+                    <span>Revenue: {m.sales.toLocaleString()}</span>
+                    <span>Exp: {m.expenses.toLocaleString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', color: '#888', fontSize: '0.8rem', padding: '1rem 0' }}>No records found for this year.</div>
+          )}
+
+          <div style={{ borderTop: '2px dashed #ccc', paddingTop: '0.8rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+              <span style={{ color: '#555' }}>Total Cash Revenue</span>
+              <span style={{ fontWeight: 'bold' }}>{cashSalesAmount.toLocaleString()}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+              <span style={{ color: '#555' }}>Total Bank/Online Revenue</span>
+              <span style={{ fontWeight: 'bold' }}>{bankSalesAmount.toLocaleString()}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+              <span style={{ color: '#555' }}>Total Expenses</span>
+              <span style={{ color: '#d32f2f', fontWeight: 'bold' }}>-{filteredData.expenses.toLocaleString()}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginTop: '0.5rem', backgroundColor: '#f0fdf4', padding: '0.5rem', borderRadius: '6px', border: '1px solid #dcfce7' }}>
+              <span style={{ color: '#166534', fontWeight: 'bold' }}>Net Profit</span>
+              <span style={{ color: '#166534', fontWeight: '900' }}>PKR {filteredData.profit.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
         {physicalSales.length > 0 && (
@@ -196,6 +292,35 @@ export default function Reports() {
           </div>
         )}
 
+        {period === 'Monthly' && vipDebts.length > 0 && (
+          <div style={{ marginTop: '0.5rem' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: '0.2rem', marginBottom: '0.5rem', color: '#b45309' }}>📒 VIP OUTSTANDING (QARZA)</div>
+            {vipDebts.map(vip => (
+              <div key={vip.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '0.3rem' }}>
+                <span style={{ color: '#555', fontWeight: 'bold' }}>{vip.name}</span>
+                <span style={{ color: '#b45309', fontWeight: 'bold' }}>PKR {vip.balance.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {period === 'Monthly' && topProductsByCategory.length > 0 && (
+          <div style={{ marginTop: '0.5rem' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: '0.2rem', marginBottom: '0.5rem', color: '#1d4ed8' }}>🏆 TOP 3 PRODUCTS (THIS MONTH)</div>
+            {topProductsByCategory.map(catData => (
+              <div key={catData.category} style={{ marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#555', marginBottom: '0.2rem', textTransform: 'uppercase' }}>{catData.category}</div>
+                {catData.items.map(([name, qty]) => (
+                  <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '0.2rem', paddingLeft: '0.5rem' }}>
+                    <span style={{ color: '#666' }}>{name}</span>
+                    <span style={{ color: '#1d4ed8', fontWeight: 'bold' }}>{qty} sold</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+
         {sales.length === 0 && expenses.length === 0 && (
           <div style={{ textAlign: 'center', color: '#888', fontSize: '0.8rem', padding: '1rem 0' }}>No records found for this period.</div>
         )}
@@ -221,6 +346,21 @@ export default function Reports() {
       </div>
     );
   };
+
+  let canShowMonthlySlip = true; // User requested to allow monthly slip at any date
+  let canShowYearlySlip = false;
+  const today = new Date();
+
+  if (period === 'Yearly') {
+    if (selectedYear < today.getFullYear()) {
+      canShowYearlySlip = true;
+    } else if (selectedYear === today.getFullYear()) {
+      // User requested yearly slip button to be visible anytime during the last month (December)
+      if (today.getMonth() === 11) {
+        canShowYearlySlip = true;
+      }
+    }
+  }
 
   return (
     <Layout>
@@ -264,7 +404,7 @@ export default function Reports() {
                   {years.map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
               )}
-              {period === 'Daily' && (
+              {(period === 'Daily' || (period === 'Monthly' && canShowMonthlySlip) || (period === 'Yearly' && canShowYearlySlip)) && (
                 <button className="btn-primary" onClick={() => setShowSlip(true)} style={{ padding: '0.7rem 1rem' }}>
                   <Award size={18} /> Slip
                 </button>
