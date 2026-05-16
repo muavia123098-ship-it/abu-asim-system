@@ -318,7 +318,7 @@ export const addDoc = async (collectionName, data) => {
   const newItem = {
     ...data,
     id: Math.random().toString(36).substr(2, 9),
-    createdAt: new Date().getTime(),
+    createdAt: data.createdAt !== undefined ? data.createdAt : new Date().getTime(),
     updatedAt: new Date().getTime()
   };
   items.push(newItem);

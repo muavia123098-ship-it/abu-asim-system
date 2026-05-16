@@ -6,10 +6,11 @@ import { db, auth, collection, addDoc, onSnapshot, query, where, serverTimestamp
 export default function Expenses() {
   const isMounted = useRef(true);
   const [expenses, setExpenses] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
-  const [formData, setFormData] = useState({ title: '', amount: '', category: 'Rent' });
+  const [formData, setFormData] = useState({ title: '', amount: '', category: 'Rent', month: '' });
+  const [filterTab, setFilterTab] = useState('daily');
 
   useEffect(() => {
     isMounted.current = true;
@@ -25,7 +26,12 @@ export default function Expenses() {
     const unsub = onSnapshot(q, 
       (snapshot) => {
         if (isMounted.current) {
-          setExpenses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          const loadedExp = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => {
+            const aTime = a.createdAt?.toMillis ? a.createdAt.toMillis() : Date.now();
+            const bTime = b.createdAt?.toMillis ? b.createdAt.toMillis() : Date.now();
+            return bTime - aTime;
+          });
+          setExpenses(loadedExp);
           setIsLoading(false);
         }
       },
@@ -51,12 +57,21 @@ export default function Expenses() {
       const amount = parseFloat(formData.amount);
       if (isNaN(amount)) throw "Invalid amount";
 
+      let expenseDate = serverTimestamp();
+      if (modalType === 'monthly' && formData.month) {
+        const [year, month] = formData.month.split('-');
+        // Save as the 1st of the selected month
+        expenseDate = new Date(parseInt(year), parseInt(month) - 1, 1).getTime();
+      }
+
       // 1. Add Expense Doc
       await addDoc(collection(db, 'expenses'), {
-        ...formData,
+        title: formData.title,
         amount,
+        category: formData.category,
+        type: modalType,
         userId: user.uid,
-        createdAt: serverTimestamp()
+        createdAt: expenseDate
       });
 
       // 2. Update Global Stats
@@ -67,8 +82,8 @@ export default function Expenses() {
       }
 
       if (isMounted.current) {
-        setIsModalOpen(false);
-        setFormData({ title: '', amount: '', category: 'Rent' });
+        setModalType(null);
+        setFormData({ title: '', amount: '', category: 'Rent', month: '' });
       }
     } catch (err) {
       console.error(err);
@@ -88,6 +103,26 @@ export default function Expenses() {
     );
   }
 
+  const getFilteredExpenses = () => {
+    const now = new Date();
+    return expenses.filter(exp => {
+      if (!exp.createdAt || !exp.createdAt.toDate) return true; // Pending expenses always show
+      const expDate = exp.createdAt.toDate();
+      if (filterTab === 'daily') {
+        return expDate.getDate() === now.getDate() &&
+               expDate.getMonth() === now.getMonth() &&
+               expDate.getFullYear() === now.getFullYear();
+      } else if (filterTab === 'monthly') {
+        return expDate.getMonth() === now.getMonth() &&
+               expDate.getFullYear() === now.getFullYear();
+      }
+      return true; // 'all'
+    });
+  };
+
+  const filteredExpenses = getFilteredExpenses();
+  const totalFilteredAmount = filteredExpenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
   return (
     <Layout>
       <div style={{ padding: '2rem', flex: 1, overflowY: 'auto' }}>
@@ -96,13 +131,44 @@ export default function Expenses() {
             <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '800' }}>Expenses Management</h1>
             <p style={{ color: 'var(--text-muted)' }}>Track your business costs and overheads.</p>
           </div>
-          <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
-            <Plus size={20} /> Add Expense
-          </button>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button className="btn-primary" onClick={() => { setModalType('daily'); setFormData({...formData, month: ''}); }}>
+              <Plus size={20} /> Daily Expense
+            </button>
+            <button className="btn-primary" onClick={() => { setModalType('monthly'); setFormData({...formData, month: new Date().toISOString().substring(0,7)}); }} style={{ backgroundColor: 'var(--success)', borderColor: 'var(--success)' }}>
+              <Plus size={20} /> Monthly Expense
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <button 
+              onClick={() => setFilterTab('daily')}
+              style={{ padding: '0.6rem 1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: filterTab === 'daily' ? 'var(--primary)' : 'transparent', color: filterTab === 'daily' ? '#000' : 'var(--text-main)', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}
+            >
+              Daily Expenses
+            </button>
+            <button 
+              onClick={() => setFilterTab('monthly')}
+              style={{ padding: '0.6rem 1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: filterTab === 'monthly' ? 'var(--primary)' : 'transparent', color: filterTab === 'monthly' ? '#000' : 'var(--text-main)', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}
+            >
+              Monthly Expenses
+            </button>
+            <button 
+              onClick={() => setFilterTab('all')}
+              style={{ padding: '0.6rem 1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: filterTab === 'all' ? 'var(--primary)' : 'transparent', color: filterTab === 'all' ? '#000' : 'var(--text-main)', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}
+            >
+              All Expenses
+            </button>
+          </div>
+          <div style={{ fontSize: '1.1rem', fontWeight: 'bold', padding: '0.6rem 1.2rem', backgroundColor: 'rgba(212, 175, 55, 0.1)', borderRadius: '8px', border: '1px solid rgba(212, 175, 55, 0.3)' }}>
+            Total: <span style={{ color: 'var(--danger)' }}>PKR {totalFilteredAmount.toLocaleString()}</span>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-          {(expenses || []).map(exp => (
+          {(filteredExpenses || []).map(exp => (
             <div key={exp?.id} className="glass-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
@@ -119,25 +185,31 @@ export default function Expenses() {
               </div>
             </div>
           ))}
-          {expenses.length === 0 && (
+          {filteredExpenses.length === 0 && (
             <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
               No expenses recorded yet.
             </div>
           )}
         </div>
 
-        {isModalOpen && (
+        {modalType && (
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <div className="glass-panel" style={{ width: '400px', padding: '2.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                <h2 style={{ margin: 0 }}>Record Expense</h2>
-                <X onClick={() => setIsModalOpen(false)} style={{ cursor: 'pointer', color: 'var(--text-muted)' }} />
+                <h2 style={{ margin: 0 }}>{modalType === 'monthly' ? 'Record Monthly Expense' : 'Record Daily Expense'}</h2>
+                <X onClick={() => setModalType(null)} style={{ cursor: 'pointer', color: 'var(--text-muted)' }} />
               </div>
               <form onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Expense Title</label>
-                  <input required className="input-field w-full" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="e.g. Electricity Bill" />
+                  <input required className="input-field w-full" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder={modalType === 'monthly' ? "e.g. Shop Rent" : "e.g. Electricity Bill"} />
                 </div>
+                {modalType === 'monthly' && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Select Month</label>
+                    <input type="month" required className="input-field w-full" value={formData.month} onChange={e => setFormData({...formData, month: e.target.value})} />
+                  </div>
+                )}
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Amount (PKR)</label>
                   <input type="number" required className="input-field w-full" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} />

@@ -29,6 +29,7 @@ export default function Reports() {
   const [chartData, setChartData] = useState([]);
   const [showSlip, setShowSlip] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [filteredLists, setFilteredLists] = useState({ sales: [], expenses: [] });
   
   const slipRef = useRef(null);
 
@@ -96,6 +97,7 @@ export default function Reports() {
       orders, productsSold: fSales.reduce((sum, s) => sum + (s.items?.length || 0), 0),
       cashSales, creditSales: totalSales - cashSales, avgOrder, totalItems
     });
+    setFilteredLists({ sales: fSales, expenses: fExpenses });
 
     // Chart Data logic
     const data = [];
@@ -133,6 +135,91 @@ export default function Reports() {
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) { alert("Copy failed."); }
+  };
+
+  const renderSlipDetails = () => {
+    const { sales, expenses } = filteredLists;
+
+    const onlineSales = sales.filter(s => s.saleType === 'Online');
+    const physicalSales = sales.filter(s => s.saleType !== 'Online');
+
+    const cashSalesAmount = sales.filter(s => s.paymentMethod === 'Cash').reduce((sum, s) => sum + s.total, 0);
+    const bankSalesAmount = sales.filter(s => s.paymentMethod !== 'Cash').reduce((sum, s) => sum + s.total, 0);
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+        {physicalSales.length > 0 && (
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: '0.2rem', marginBottom: '0.5rem', color: '#333' }}>🛒 PHYSICAL SALES</div>
+            {physicalSales.map(s => (
+              <div key={s.id} style={{ display: 'flex', flexDirection: 'column', marginBottom: '0.4rem', borderBottom: '1px dashed #eee', paddingBottom: '0.3rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem' }}>
+                  <span style={{ fontWeight: '600' }}>{s.customerName} {s.customerId && s.customerId !== 'guest' ? '(VIP)' : '(Walk-in)'}</span>
+                  <span style={{ fontWeight: 'bold' }}>{s.total.toLocaleString()}</span>
+                </div>
+                <div style={{ fontSize: '0.65rem', color: '#666', display: 'flex', justifyContent: 'space-between', marginTop: '0.2rem' }}>
+                  <span style={{ flex: 1, paddingRight: '0.5rem' }}>{s.items?.map(i => `${i.name} x${i.quantity}`).join(', ')}</span>
+                  <span>{s.paymentMethod}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {onlineSales.length > 0 && (
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: '0.2rem', marginBottom: '0.5rem', color: '#333' }}>📦 ONLINE ORDERS</div>
+            {onlineSales.map(s => (
+              <div key={s.id} style={{ display: 'flex', flexDirection: 'column', marginBottom: '0.4rem', borderBottom: '1px dashed #eee', paddingBottom: '0.3rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem' }}>
+                  <span style={{ fontWeight: '600' }}>{s.customerName}</span>
+                  <span style={{ fontWeight: 'bold' }}>{s.total.toLocaleString()}</span>
+                </div>
+                <div style={{ fontSize: '0.65rem', color: '#666', display: 'flex', justifyContent: 'space-between', marginTop: '0.2rem' }}>
+                  <span style={{ flex: 1, paddingRight: '0.5rem' }}>{s.items?.map(i => `${i.name} x${i.quantity}`).join(', ')}</span>
+                  <span>{s.paymentMethod}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {expenses.length > 0 && (
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: '0.2rem', marginBottom: '0.5rem', color: '#d32f2f' }}>📉 EXPENSES</div>
+            {expenses.map(e => (
+              <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '0.3rem' }}>
+                <span style={{ color: '#555', flex: 1, paddingRight: '0.5rem' }}>{e.title}</span>
+                <span style={{ color: '#d32f2f', fontWeight: 'bold' }}>-{parseFloat(e.amount).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {sales.length === 0 && expenses.length === 0 && (
+          <div style={{ textAlign: 'center', color: '#888', fontSize: '0.8rem', padding: '1rem 0' }}>No records found for this period.</div>
+        )}
+
+        <div style={{ borderTop: '2px dashed #ccc', paddingTop: '0.8rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+            <span style={{ color: '#555' }}>Total Cash Revenue</span>
+            <span style={{ fontWeight: 'bold' }}>{cashSalesAmount.toLocaleString()}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+            <span style={{ color: '#555' }}>Total Bank/Online Revenue</span>
+            <span style={{ fontWeight: 'bold' }}>{bankSalesAmount.toLocaleString()}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+            <span style={{ color: '#555' }}>Total Expenses</span>
+            <span style={{ color: '#d32f2f', fontWeight: 'bold' }}>-{filteredData.expenses.toLocaleString()}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginTop: '0.5rem', backgroundColor: '#f0fdf4', padding: '0.5rem', borderRadius: '6px', border: '1px solid #dcfce7' }}>
+            <span style={{ color: '#166534', fontWeight: 'bold' }}>Net Profit</span>
+            <span style={{ color: '#166534', fontWeight: '900' }}>PKR {filteredData.profit.toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -227,44 +314,29 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* VIP Summary Slip Modal */}
+        {/* Detailed Summary Slip Modal */}
         {showSlip && (
-          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div ref={slipRef} style={{ width: '300px', backgroundColor: '#fff', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', color: '#000' }}>
-              <div style={{ textAlign: 'center', marginBottom: '1.2rem' }}>
-                <img src="/logo.png" style={{ width: '60px', height: 'auto', marginBottom: '0.5rem', objectFit: 'contain' }} />
-                <h2 style={{ fontSize: '1.1rem', margin: 0, letterSpacing: '1px', fontWeight: '800' }}>ABU ASIM</h2>
-                <div style={{ fontSize: '0.65rem', color: '#956e36', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 'bold' }}>Perfumery</div>
-                <div style={{ fontSize: '0.75rem', fontWeight: '900', marginTop: '0.8rem' }}>{new Date(selectedDate).toLocaleDateString('en-PK', { dateStyle: 'full' })}</div>
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 1000, overflowY: 'auto', padding: '2rem 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100%' }}>
+              <div ref={slipRef} style={{ width: '350px', backgroundColor: '#fff', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', color: '#000', margin: 'auto' }}>
+                <div style={{ textAlign: 'center', marginBottom: '1.2rem' }}>
+                  <img src="/logo.png" style={{ width: '60px', height: 'auto', marginBottom: '0.5rem', objectFit: 'contain' }} />
+                  <h2 style={{ fontSize: '1.1rem', margin: 0, letterSpacing: '1px', fontWeight: '800' }}>ABU ASIM</h2>
+                  <div style={{ fontSize: '0.65rem', color: '#956e36', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 'bold' }}>Perfumery</div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: '900', marginTop: '0.8rem' }}>
+                    {period === 'Daily' ? new Date(selectedDate).toLocaleDateString('en-PK', { dateStyle: 'full' }) : period + ' Report'}
+                  </div>
+                </div>
+                
+                {renderSlipDetails()}
+
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                  <span style={{ color: '#666' }}>Sales</span>
-                  <span style={{ fontWeight: 'bold' }}>PKR {filteredData.sales.toLocaleString()}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                  <span style={{ color: '#666' }}>Cash</span>
-                  <span style={{ color: '#956e36', fontWeight: 'bold' }}>PKR {filteredData.cashSales.toLocaleString()}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                  <span style={{ color: '#666' }}>Expenses</span>
-                  <span style={{ color: '#d32f2f', fontWeight: 'bold' }}>PKR {filteredData.expenses.toLocaleString()}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                  <span style={{ color: '#666' }}>Orders</span>
-                  <span style={{ fontWeight: 'bold' }}>{filteredData.orders}</span>
-                </div>
-                <div style={{ marginTop: '0.5rem', padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #dcfce7', textAlign: 'center' }}>
-                  <div style={{ color: '#166534', fontSize: '0.6rem', textTransform: 'uppercase', fontWeight: 'bold' }}>Profit</div>
-                  <div style={{ color: '#166534', fontSize: '1.4rem', fontWeight: '900' }}>PKR {filteredData.profit.toLocaleString()}</div>
-                </div>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem', marginBottom: '2rem' }}>
+                <button onClick={() => setShowSlip(false)} className="btn-primary" style={{ backgroundColor: '#333', border: '1px solid #555', color: '#fff' }}>Discard</button>
+                <button onClick={copySlip} className="btn-primary" style={{ backgroundColor: '#956e36' }}>
+                  {copySuccess ? <Check size={18} /> : <Copy size={18} />} {copySuccess ? 'Copied' : 'Share'}
+                </button>
               </div>
-            </div>
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-              <button onClick={() => setShowSlip(false)} className="btn-primary" style={{ backgroundColor: 'transparent', border: '1px solid #444', color: '#888' }}>Discard</button>
-              <button onClick={copySlip} className="btn-primary" style={{ backgroundColor: '#956e36' }}>
-                {copySuccess ? <Check size={18} /> : <Copy size={18} />} {copySuccess ? 'Copied' : 'Share'}
-              </button>
             </div>
           </div>
         )}
