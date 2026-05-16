@@ -138,47 +138,47 @@ export default function Products() {
         </div>
 
         {/* Product Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem' }}>
           {filteredProducts.map(product => {
             const margin = product.sellingPrice - product.costPrice;
             const marginPercent = ((margin / product.sellingPrice) * 100).toFixed(1);
             
             return (
-              <div key={product.id} className="glass-panel" style={{ padding: '1.5rem', transition: 'all 0.2s', position: 'relative' }}>
-                <div style={{ display: 'flex', gap: '1.2rem', marginBottom: '1.5rem' }}>
-                  <div style={{ width: '80px', height: '80px', backgroundColor: 'var(--bg-main)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                    {product.imageUrl ? <img src={product.imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={32} color="var(--text-muted)" />}
+              <div key={product.id} className="glass-panel" style={{ padding: '1rem', transition: 'all 0.2s', position: 'relative' }}>
+                <div style={{ display: 'flex', gap: '0.8rem', marginBottom: '1rem' }}>
+                  <div style={{ width: '60px', height: '60px', backgroundColor: 'var(--bg-main)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                    {product.imageUrl ? <img src={product.imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={24} color="var(--text-muted)" />}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.2rem' }}>{product.brand || 'No Brand'}</div>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{product.name}</h3>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', marginTop: '0.3rem' }}>
-                      <FlaskConical size={14} /> {product.volume}ml | SKU: {product.sku || 'N/A'}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.brand || 'No Brand'}</div>
+                    <h3 style={{ margin: 0, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.name}</h3>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', gap: '0.3rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
+                      <span>{product.volume}ml</span> | <span>{product.sku || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '1.5rem' }}>
-                  <div style={{ backgroundColor: 'var(--bg-main)', padding: '0.75rem', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Purchase</div>
-                    <div style={{ fontWeight: 'bold' }}>PKR {product.costPrice}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <div style={{ backgroundColor: 'var(--bg-main)', padding: '0.5rem', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Purchase</div>
+                    <div style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>Rs {product.costPrice}</div>
                   </div>
-                  <div style={{ backgroundColor: 'var(--bg-main)', padding: '0.75rem', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Sale</div>
-                    <div style={{ fontWeight: 'bold', color: 'var(--primary)' }}>PKR {product.sellingPrice}</div>
+                  <div style={{ backgroundColor: 'var(--bg-main)', padding: '0.5rem', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Sale</div>
+                    <div style={{ fontWeight: 'bold', color: 'var(--primary)', fontSize: '0.85rem' }}>Rs {product.sellingPrice}</div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.8rem' }}>
                   <div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Stock Status</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 'bold', color: product.stock <= product.minStock ? 'var(--danger)' : 'var(--success)' }}>
-                      <Package size={16} /> {product.stock} units
+                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Stock Status</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 'bold', fontSize: '0.8rem', color: product.stock <= product.minStock ? 'var(--danger)' : 'var(--success)' }}>
+                      <Package size={14} /> {product.stock} units
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Profit Margin</div>
-                    <div style={{ fontWeight: 'bold', color: 'var(--success)' }}>{marginPercent}%</div>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Profit Margin</div>
+                    <div style={{ fontWeight: 'bold', fontSize: '0.8rem', color: 'var(--success)' }}>{marginPercent}%</div>
                   </div>
                 </div>
 
