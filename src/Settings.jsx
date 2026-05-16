@@ -255,11 +255,11 @@ export default function Settings() {
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem' }}>4-Digit Security PIN</label>
                   <input 
-                    type="password" 
+                    type="text" 
                     maxLength="4"
                     className="input-field w-full" 
-                    style={{ padding: '0.6rem 0.8rem', fontSize: '1rem', letterSpacing: '4px', textAlign: 'center', fontWeight: 'bold' }} 
-                    placeholder="****"
+                    style={{ padding: '0.6rem 0.8rem', fontSize: '1.2rem', letterSpacing: '8px', textAlign: 'center', fontWeight: 'bold' }} 
+                    placeholder="1234"
                     value={settings.appPin} 
                     onChange={e => setSettings({...settings, appPin: e.target.value.replace(/\D/g, '')})} 
                   />
