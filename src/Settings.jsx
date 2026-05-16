@@ -190,134 +190,134 @@ export default function Settings() {
 
   return (
     <Layout>
-      <div style={{ padding: '1.5rem', maxWidth: '1000px', margin: '0 auto' }}>
+      <div style={{ padding: '1rem', maxWidth: '1000px', margin: '0 auto' }}>
         
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '800' }}>System Settings</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.3rem' }}>Configure your business profile and data preferences.</p>
+        <div style={{ marginBottom: '1rem' }}>
+          <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: '800' }}>System Settings</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0.2rem 0 0 0' }}>Configure your business profile and data preferences.</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'start' }}>
           
           {/* General Settings */}
-          <div className="glass-panel" style={{ padding: '1.5rem' }}>
-            <h3 style={{ margin: '0 0 1.2rem 0', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '1.1rem' }}><Building size={18} color="var(--primary)" /> Business Profile</h3>
+          <div className="glass-panel" style={{ padding: '1.2rem' }}>
+            <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}><Building size={16} color="var(--primary)" /> Business Profile</h3>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.4rem' }}>Business Name</label>
-                <input className="input-field w-full" style={{ padding: '0.7rem 1rem' }} value={settings.businessName} onChange={e => setSettings({...settings, businessName: e.target.value})} />
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem' }}>Business Name</label>
+                <input className="input-field w-full" style={{ padding: '0.6rem 0.8rem', fontSize: '0.85rem' }} value={settings.businessName} onChange={e => setSettings({...settings, businessName: e.target.value})} />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
                 <div>
-                  <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.4rem' }}>Currency Symbol</label>
-                  <input className="input-field w-full" style={{ padding: '0.7rem 1rem' }} value={settings.currency} onChange={e => setSettings({...settings, currency: e.target.value})} />
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem' }}>Currency Symbol</label>
+                  <input className="input-field w-full" style={{ padding: '0.6rem 0.8rem', fontSize: '0.85rem' }} value={settings.currency} onChange={e => setSettings({...settings, currency: e.target.value})} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.4rem' }}>Low Stock Alert</label>
-                  <input type="number" className="input-field w-full" style={{ padding: '0.7rem 1rem' }} value={settings.lowStockThreshold} onChange={e => setSettings({...settings, lowStockThreshold: parseInt(e.target.value)})} />
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem' }}>Low Stock Alert</label>
+                  <input type="number" className="input-field w-full" style={{ padding: '0.6rem 0.8rem', fontSize: '0.85rem' }} value={settings.lowStockThreshold} onChange={e => setSettings({...settings, lowStockThreshold: parseInt(e.target.value)})} />
                 </div>
               </div>
 
               <div>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.4rem' }}>Invoice Footer Note</label>
-                <textarea className="input-field w-full" rows="2" style={{ height: 'auto', padding: '0.8rem 1rem' }} value={settings.invoiceNote} onChange={e => setSettings({...settings, invoiceNote: e.target.value})} />
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem' }}>Invoice Footer Note</label>
+                <textarea className="input-field w-full" rows="2" style={{ height: 'auto', padding: '0.6rem 0.8rem', fontSize: '0.85rem' }} value={settings.invoiceNote} onChange={e => setSettings({...settings, invoiceNote: e.target.value})} />
               </div>
 
-              <button disabled={isLoading} onClick={handleSave} className="btn-primary" style={{ marginTop: '0.2rem', justifyContent: 'center', padding: '0.8rem', fontSize: '0.9rem' }}>
-                <Save size={18} /> {isLoading ? 'Saving...' : 'Save Settings'}
+              <button disabled={isLoading} onClick={handleSave} className="btn-primary" style={{ marginTop: '0', justifyContent: 'center', padding: '0.7rem', fontSize: '0.85rem' }}>
+                <Save size={16} /> {isLoading ? 'Saving...' : 'Save Settings'}
               </button>
             </div>
           </div>
 
           {/* Data Management Refined */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
             {/* ── Desktop File Storage Panel ── */}
-            <div className="glass-panel" style={{ padding: '1.5rem', border: fileStatus.connected ? '1px solid rgba(212,175,55,0.5)' : '1px solid var(--border-color)' }}>
-              <h3 style={{ margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '1.1rem' }}>
-                <HardDrive size={18} color={fileStatus.connected ? 'var(--primary)' : 'var(--text-muted)'} />
+            <div className="glass-panel" style={{ padding: '1.2rem', border: fileStatus.connected ? '1px solid rgba(212,175,55,0.5)' : '1px solid var(--border-color)' }}>
+              <h3 style={{ margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}>
+                <HardDrive size={16} color={fileStatus.connected ? 'var(--primary)' : 'var(--text-muted)'} />
                 Desktop File Storage
               </h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1rem 0', lineHeight: '1.4' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0 0 0.8rem 0', lineHeight: '1.3' }}>
                 Data ko browser se bahar ek <strong>.json file</strong> mein save karein — browser clear karne se bhi data safe rahega.
               </p>
 
               {/* Status Badge */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', padding: '0.7rem 1rem', borderRadius: '10px', backgroundColor: fileStatus.connected ? 'rgba(212,175,55,0.08)' : 'rgba(255,255,255,0.03)', border: fileStatus.connected ? '1px solid rgba(212,175,55,0.3)' : '1px solid var(--border-color)', marginBottom: '1rem' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: fileStatus.connected ? '#22c55e' : '#6b7280', boxShadow: fileStatus.connected ? '0 0 8px #22c55e' : 'none', flexShrink: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 0.8rem', borderRadius: '8px', backgroundColor: fileStatus.connected ? 'rgba(212,175,55,0.08)' : 'rgba(255,255,255,0.03)', border: fileStatus.connected ? '1px solid rgba(212,175,55,0.3)' : '1px solid var(--border-color)', marginBottom: '0.8rem' }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: fileStatus.connected ? '#22c55e' : '#6b7280', boxShadow: fileStatus.connected ? '0 0 8px #22c55e' : 'none', flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Status</div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: fileStatus.connected ? 'var(--primary)' : 'var(--text-main)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.1rem' }}>Status</div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: '700', color: fileStatus.connected ? 'var(--primary)' : 'var(--text-main)' }}>
                     {fileStatus.connected ? `✅ Connected: ${fileStatus.fileName}` : '❌ Not Connected (Browser Storage Only)'}
                   </div>
                 </div>
               </div>
 
               {showFileSuccess && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 0.8rem', borderRadius: '8px', backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', marginBottom: '0.8rem' }}>
-                  <CheckCircle2 size={16} color="#22c55e" />
-                  <span style={{ fontSize: '0.8rem', color: '#22c55e', fontWeight: '600' }}>File successfully linked! Data ab auto-save hoga. 🎉</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.8rem', borderRadius: '6px', backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', marginBottom: '0.8rem' }}>
+                  <CheckCircle2 size={14} color="#22c55e" />
+                  <span style={{ fontSize: '0.75rem', color: '#22c55e', fontWeight: '600' }}>File successfully linked! Data ab auto-save hoga. 🎉</span>
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: '0.8rem' }}>
+              <div style={{ display: 'flex', gap: '0.6rem' }}>
                 {!fileStatus.connected ? (
                   <button
                     onClick={handleConnectFile}
                     disabled={fileConnecting}
                     className="btn-primary"
-                    style={{ flex: 1, padding: '0.7rem', justifyContent: 'center', fontSize: '0.85rem' }}
+                    style={{ flex: 1, padding: '0.6rem', justifyContent: 'center', fontSize: '0.8rem' }}
                   >
-                    <Link size={16} />
+                    <Link size={14} />
                     {fileConnecting ? 'Connecting...' : 'Desktop File Se Connect Karein'}
                   </button>
                 ) : (
                   <button
                     onClick={handleDisconnectFile}
-                    style={{ flex: 1, padding: '0.7rem', borderRadius: '10px', border: '1px solid var(--danger)', backgroundColor: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.85rem' }}
+                    style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--danger)', backgroundColor: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.8rem' }}
                   >
-                    <Unlink size={16} />
+                    <Unlink size={14} />
                     Disconnect
                   </button>
                 )}
               </div>
 
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.8rem', lineHeight: '1.4', marginBottom: 0 }}>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.6rem', lineHeight: '1.3', marginBottom: 0 }}>
                 💡 <strong>Tip:</strong> Pehli baar connect karne par browser permission maangega — <em>"Allow"</em> click karein.
               </p>
             </div>
 
-            <div className="glass-panel" style={{ padding: '1.5rem' }}>
-              <h3 style={{ margin: '0 0 1.2rem 0', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '1.1rem' }}><Database size={18} color="var(--success)" /> Data Management</h3>
+            <div className="glass-panel" style={{ padding: '1.2rem' }}>
+              <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}><Database size={16} color="var(--success)" /> Data Management</h3>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.8rem' }}>Export & Import Backup</div>
-                  <div style={{ display: 'flex', gap: '0.8rem' }}>
-                    <button disabled={backupLoading} onClick={handleBackup} className="btn-primary" style={{ flex: 1, padding: '0.6rem', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '0.85rem', display: 'flex', justifyContent: 'center' }}>
-                      <Download size={16} /> {backupLoading ? '...' : 'Export'}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: '0.8rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.6rem' }}>Export & Import Backup</div>
+                  <div style={{ display: 'flex', gap: '0.6rem' }}>
+                    <button disabled={backupLoading} onClick={handleBackup} className="btn-primary" style={{ flex: 1, padding: '0.5rem', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '0.8rem', display: 'flex', justifyContent: 'center' }}>
+                      <Download size={14} /> {backupLoading ? '...' : 'Export'}
                     </button>
-                    <label className="btn-primary" style={{ flex: 1, padding: '0.6rem', cursor: 'pointer', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                      <Upload size={16} /> Restore
+                    <label className="btn-primary" style={{ flex: 1, padding: '0.5rem', cursor: 'pointer', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '0.8rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem' }}>
+                      <Upload size={14} /> Restore
                       <input type="file" hidden accept=".json" onChange={handleRestoreSelect} />
                     </label>
                   </div>
                 </div>
 
-                <div style={{ padding: '0.8rem 1rem', backgroundColor: 'rgba(212, 175, 55, 0.05)', borderRadius: '12px', display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
-                  <ShieldCheck size={20} color="var(--primary)" style={{ flexShrink: 0 }} />
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: '1.4' }}>Aapka data local hai. Safety ke liye waqtan fawaqtan backup export kar liya karein.</p>
+                <div style={{ padding: '0.6rem 0.8rem', backgroundColor: 'rgba(212, 175, 55, 0.05)', borderRadius: '10px', display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                  <ShieldCheck size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0, lineHeight: '1.3' }}>Aapka data local hai. Safety ke liye waqtan fawaqtan backup export kar liya karein.</p>
                 </div>
 
                 {/* Danger Zone Refined */}
-                <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+                <div style={{ marginTop: '0.3rem', paddingTop: '0.8rem', borderTop: '1px solid var(--border-color)' }}>
                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--danger)', fontWeight: 'bold' }}>Factory Reset</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--danger)', fontWeight: 'bold' }}>Factory Reset</div>
                       <button 
                         onClick={() => setShowDeleteConfirm(true)}
-                        style={{ padding: '0.5rem 1rem', borderRadius: '8px', backgroundColor: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
+                        style={{ padding: '0.4rem 0.8rem', borderRadius: '6px', backgroundColor: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
                       >
                         Reset System
                       </button>
