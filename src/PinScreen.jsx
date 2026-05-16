@@ -84,100 +84,31 @@ export default function PinScreen({ onUnlock }) {
       zIndex: 9999, 
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' 
     }}>
-      {/* Brand Logo Top Left */}
-      <div style={{ position: 'absolute', top: '2rem', left: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <img src="/logo.png" alt="Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', filter: 'drop-shadow(0 0 5px rgba(212,175,55,0.4))' }} onError={(e) => { e.target.style.display = 'none'; }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: '800', margin: '0 0 0.1rem 0', color: 'var(--text-main)', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>Abu Asim</h2>
-          <div style={{ fontSize: '0.6rem', color: '#d4af37', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>MANAGEMENT SYSTEM</div>
-        </div>
-      </div>
+      <div style={{ textAlign: 'center', marginBottom: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <img src="/logo.png" alt="Logo" style={{ width: '100px', height: '100px', objectFit: 'contain', filter: 'drop-shadow(0 0 10px rgba(212,175,55,0.4))', marginBottom: '0.8rem' }} onError={(e) => { e.target.style.display = 'none'; }} />
+        <h2 style={{ fontSize: '1.8rem', fontWeight: '800', margin: '0 0 0.2rem 0', color: 'var(--text-main)', letterSpacing: '1px' }}>Abu Asim</h2>
+        <div style={{ fontSize: '0.8rem', color: '#d4af37', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '2.5rem', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>MANAGEMENT SYSTEM</div>
 
-      <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'rgba(212, 175, 55, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', boxShadow: '0 0 30px rgba(212, 175, 55, 0.2)' }}>
-          {error ? <ShieldAlert size={36} color="var(--danger)" /> : <Lock size={36} color="var(--primary)" />}
+        <div style={{ width: '70px', height: '70px', borderRadius: '50%', backgroundColor: 'rgba(212, 175, 55, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', boxShadow: '0 0 30px rgba(212, 175, 55, 0.2)' }}>
+          {error ? <ShieldAlert size={32} color="var(--danger)" /> : <Lock size={32} color="var(--primary)" />}
         </div>
-        <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '800', letterSpacing: '2px', color: 'var(--text-main)' }}>SYSTEM LOCKED</h1>
+        <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', letterSpacing: '2px', color: 'var(--text-main)' }}>SYSTEM LOCKED</h1>
         <p style={{ color: error ? 'var(--danger)' : 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.5rem', transition: 'color 0.3s' }}>
-          {error ? 'Incorrect PIN entered' : 'Enter your 4-digit security PIN'}
+          {error ? 'Incorrect PIN entered' : 'Type your 4-digit security PIN on keyboard'}
         </p>
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '3rem' }}>
+      <div style={{ display: 'flex', gap: '1.2rem', marginBottom: '2rem' }}>
         {[0, 1, 2, 3].map(i => (
           <div key={i} style={{ 
-            width: '20px', height: '20px', 
+            width: '24px', height: '24px', 
             borderRadius: '50%', 
-            backgroundColor: pin.length > i ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
-            boxShadow: pin.length > i ? '0 0 15px var(--primary)' : 'none',
+            backgroundColor: pin.length > i ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+            boxShadow: pin.length > i ? '0 0 20px var(--primary)' : 'none',
             transition: 'all 0.2s',
-            border: pin.length > i ? 'none' : '2px solid rgba(255,255,255,0.2)'
+            border: pin.length > i ? 'none' : '2px solid rgba(255,255,255,0.1)'
           }} />
         ))}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', width: '280px' }}>
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-          <button 
-            key={num} 
-            onClick={() => handleKeyPress(num.toString())}
-            style={{ 
-              width: '75px', height: '75px', 
-              borderRadius: '50%', 
-              backgroundColor: 'rgba(255,255,255,0.03)', 
-              border: '1px solid rgba(255,255,255,0.08)', 
-              color: 'white', 
-              fontSize: '1.8rem', 
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'all 0.2s',
-              backdropFilter: 'blur(10px)'
-            }}
-            onMouseOver={e => { e.currentTarget.style.backgroundColor = 'rgba(212,175,55,0.15)'; e.currentTarget.style.borderColor = 'rgba(212,175,55,0.4)'; }}
-            onMouseOut={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
-          >
-            {num}
-          </button>
-        ))}
-        <div /> {/* Empty space bottom left */}
-        <button 
-          onClick={() => handleKeyPress('0')}
-          style={{ 
-            width: '75px', height: '75px', 
-            borderRadius: '50%', 
-            backgroundColor: 'rgba(255,255,255,0.03)', 
-            border: '1px solid rgba(255,255,255,0.08)', 
-            color: 'white', 
-            fontSize: '1.8rem', 
-            fontWeight: '600',
-            cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'all 0.2s',
-            backdropFilter: 'blur(10px)'
-          }}
-          onMouseOver={e => { e.currentTarget.style.backgroundColor = 'rgba(212,175,55,0.15)'; e.currentTarget.style.borderColor = 'rgba(212,175,55,0.4)'; }}
-          onMouseOut={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
-        >
-          0
-        </button>
-        <button 
-          onClick={handleBackspace}
-          style={{ 
-            width: '75px', height: '75px', 
-            borderRadius: '50%', 
-            backgroundColor: 'transparent', 
-            border: 'none', 
-            color: 'var(--text-muted)', 
-            cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'all 0.2s'
-          }}
-          onMouseOver={e => { e.currentTarget.style.color = 'var(--text-main)' }}
-          onMouseOut={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
-        >
-          <Delete size={28} />
-        </button>
       </div>
     </div>
   );
