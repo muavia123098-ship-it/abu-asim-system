@@ -31,6 +31,21 @@ export default function PinScreen({ onUnlock }) {
     setTimeout(checkSecurity, 500);
   }, [onUnlock]);
 
+  useEffect(() => {
+    if (loading) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key >= '0' && e.key <= '9') {
+        handleKeyPress(e.key);
+      } else if (e.key === 'Backspace') {
+        handleBackspace();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pin, correctPin, loading]);
+
   const handleKeyPress = (num) => {
     if (pin.length < 4) {
       const newPin = pin + num;
@@ -69,6 +84,15 @@ export default function PinScreen({ onUnlock }) {
       zIndex: 9999, 
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' 
     }}>
+      {/* Brand Logo Top Left */}
+      <div style={{ position: 'absolute', top: '2rem', left: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <img src="/logo.png" alt="Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', filter: 'drop-shadow(0 0 5px rgba(212,175,55,0.4))' }} onError={(e) => { e.target.style.display = 'none'; }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: '800', margin: '0 0 0.1rem 0', color: 'var(--text-main)', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>Abu Asim</h2>
+          <div style={{ fontSize: '0.6rem', color: '#d4af37', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>MANAGEMENT SYSTEM</div>
+        </div>
+      </div>
+
       <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
         <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'rgba(212, 175, 55, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', boxShadow: '0 0 30px rgba(212, 175, 55, 0.2)' }}>
           {error ? <ShieldAlert size={36} color="var(--danger)" /> : <Lock size={36} color="var(--primary)" />}

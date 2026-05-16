@@ -201,7 +201,7 @@ export default function Settings() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'stretch' }}>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
             {/* General Settings */}
             <div className="glass-panel" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
             <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem', flexShrink: 0 }}><Building size={16} color="var(--primary)" /> Business Profile</h3>
@@ -271,7 +271,7 @@ export default function Settings() {
         </div>
 
           {/* Data Management Refined */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
 
             {/* ── Desktop File Storage Panel ── */}
             <div className="glass-panel" style={{ padding: '1.2rem', border: fileStatus.connected ? '1px solid rgba(212,175,55,0.5)' : '1px solid var(--border-color)' }}>
@@ -328,10 +328,10 @@ export default function Settings() {
               </p>
             </div>
 
-            <div className="glass-panel" style={{ padding: '1.2rem' }}>
+            <div className="glass-panel" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
               <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}><Database size={16} color="var(--success)" /> Data Management</h3>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', flex: 1 }}>
                 <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: '0.8rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                   <div style={{ fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.6rem' }}>Export & Import Backup</div>
                   <div style={{ display: 'flex', gap: '0.6rem' }}>
@@ -351,7 +351,7 @@ export default function Settings() {
                 </div>
 
                 {/* Danger Zone Refined */}
-                <div style={{ marginTop: '0.3rem', paddingTop: '0.8rem', borderTop: '1px solid var(--border-color)' }}>
+                <div style={{ marginTop: 'auto', paddingTop: '0.8rem', borderTop: '1px solid var(--border-color)' }}>
                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ fontSize: '0.8rem', color: 'var(--danger)', fontWeight: 'bold' }}>Factory Reset</div>
                       <button 

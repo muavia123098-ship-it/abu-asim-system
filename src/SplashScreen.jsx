@@ -4,14 +4,14 @@ export default function SplashScreen({ onFinish }) {
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
-    // Keep it for 5 seconds total as requested
+    // Keep it for 3 seconds total as requested
     const timer1 = setTimeout(() => {
       setIsFadingOut(true);
-    }, 4500);
+    }, 2500);
 
     const timer2 = setTimeout(() => {
       onFinish();
-    }, 5000);
+    }, 3000);
 
     return () => {
       clearTimeout(timer1);
