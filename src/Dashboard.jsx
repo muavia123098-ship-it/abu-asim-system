@@ -3,7 +3,7 @@ import Layout from './Layout';
 import { 
   TrendingUp, DollarSign, ShoppingCart, Package, Users, 
   ArrowUpRight, ArrowDownRight, Calendar, Filter,
-  MoreVertical, RefreshCw, AlertCircle, CheckCircle2
+  MoreVertical, RefreshCw, AlertCircle, CheckCircle2, Wallet
 } from 'lucide-react';
 import { db, auth, collection, onSnapshot, query, where, doc, getDocs, orderBy, limit } from './db';
 import { 
@@ -24,7 +24,10 @@ export default function Dashboard() {
     totalOrders: 0,
     totalCustomers: 0,
     lowStockCount: 0,
-    totalStockValue: 0
+    totalStockValue: 0,
+    totalPurchases: 0,
+    totalCashSales: 0,
+    totalAllExpenses: 0
   });
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [salesData, setSalesData] = useState([]);
@@ -141,7 +144,25 @@ export default function Dashboard() {
       setLoading(false);
     });
 
-    return () => { unsubSales(); unsubProducts(); unsubCustomers(); unsubExpenses(); };
+    const unsubPurchases = onSnapshot(query(collection(db, 'purchases'), where('userId', '==', user.uid)), (snapshot) => {
+      const allPurchases = snapshot.docs.map(doc => ({ ...doc.data(), date: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date() }));
+      const filteredPurchases = allPurchases.filter(p => p.date >= startDate && p.date <= endDate);
+      const totalPurch = filteredPurchases.reduce((sum, p) => sum + (parseFloat(p.totalCost) || 0), 0);
+      setStats(prev => ({ ...prev, totalPurchases: totalPurch }));
+    });
+
+    // CUMULATIVE CASH IN HAND
+    const unsubPayments = onSnapshot(query(collection(db, 'payments'), where('userId', '==', user.uid), where('method', '==', 'Cash')), (snapshot) => {
+      const total = snapshot.docs.reduce((sum, doc) => sum + (parseFloat(doc.data().amount) || 0), 0);
+      setStats(prev => ({ ...prev, totalCashSales: total }));
+    });
+
+    const unsubAllExpenses = onSnapshot(query(collection(db, 'expenses'), where('userId', '==', user.uid)), (snapshot) => {
+      const total = snapshot.docs.reduce((sum, doc) => sum + (parseFloat(doc.data().amount) || 0), 0);
+      setStats(prev => ({ ...prev, totalAllExpenses: total }));
+    });
+
+    return () => { unsubSales(); unsubProducts(); unsubCustomers(); unsubExpenses(); unsubPurchases(); unsubPayments(); unsubAllExpenses(); };
   }, [period, selectedDate, selectedMonth, selectedYear]);
 
   return (
@@ -261,18 +282,26 @@ export default function Dashboard() {
           </div>
 
           <div style={{ gridColumn: 'span 5', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderLeft: '5px solid var(--primary)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <Users size={24} color="var(--primary)" />
-                <div style={{ fontWeight: 'bold' }}>VIP Customers</div>
+            <div className="glass-panel" style={{ padding: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderLeft: '5px solid #22c55e', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                <Wallet size={20} color="#22c55e" />
+                <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Cash in Hand</div>
               </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '800' }}>{stats.totalCustomers}</div>
+              <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#22c55e' }}>PKR {(stats.totalCashSales - stats.totalAllExpenses).toLocaleString()}</div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderLeft: '5px solid var(--primary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                <Users size={20} color="var(--primary)" />
+                <div style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>VIP Customers</div>
+              </div>
+              <div style={{ fontSize: '1.2rem', fontWeight: '800' }}>{stats.totalCustomers}</div>
             </div>
 
             <div className="glass-panel" style={{ padding: '2rem', backgroundColor: 'var(--primary)', color: '#1a1a1a', flex: 1, position: 'relative', overflow: 'hidden' }}>
               <div style={{ fontSize: '1rem', fontWeight: '600', opacity: 0.7 }}>Net Profit</div>
-              <div style={{ fontSize: '2.5rem', fontWeight: '900', margin: '0.5rem 0' }}>PKR {(stats.grossProfit - stats.totalExpenses).toLocaleString()}</div>
-              <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Gross Profit - Expenses for selected period</p>
+              <div style={{ fontSize: '2.5rem', fontWeight: '900', margin: '0.5rem 0' }}>PKR {(stats.totalSales - stats.totalPurchases - stats.totalExpenses).toLocaleString()}</div>
+              <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Sales - (Purchases + Expenses) for period</p>
             </div>
           </div>
 

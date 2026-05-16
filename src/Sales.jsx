@@ -161,7 +161,7 @@ export default function Sales() {
             items: cart 
           });
         } else {
-          alert("Sale completed successfully!");
+          // Sale completed silently for walk-in
         }
       });
 

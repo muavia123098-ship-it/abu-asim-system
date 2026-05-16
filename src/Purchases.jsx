@@ -240,7 +240,12 @@ export default function Purchases() {
                       <Search size={16} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
                     </div>
                     {showSupplierSuggestions && supplierSearch.length > 0 && (
-                      <div className="glass-panel" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, marginTop: '0.5rem', maxHeight: '200px', overflowY: 'auto', padding: '0.5rem' }}>
+                      <div style={{ 
+                        position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, 
+                        marginTop: '0.5rem', maxHeight: '200px', overflowY: 'auto', 
+                        padding: '0.5rem', backgroundColor: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)'
+                      }}>
                         {filteredSuppliers.map(s => (
                           <div 
                             key={s.id} 
@@ -268,7 +273,12 @@ export default function Purchases() {
                         onChange={(e) => { setProductSearch(e.target.value); setShowProductSuggestions(true); }}
                       />
                       {showProductSuggestions && productSearch.length > 0 && (
-                        <div className="glass-panel" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, marginTop: '0.5rem', maxHeight: '250px', overflowY: 'auto', padding: '0.5rem' }}>
+                        <div style={{ 
+                          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, 
+                          marginTop: '0.5rem', maxHeight: '250px', overflowY: 'auto', 
+                          padding: '0.5rem', backgroundColor: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)'
+                        }}>
                           {filteredProducts.map(p => (
                             <div 
                               key={p.id} 

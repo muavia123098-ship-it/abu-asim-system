@@ -132,7 +132,7 @@ export default function Employees() {
             <div key={emp.id} className="glass-panel" style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
               <div style={{ 
                 position: 'absolute', top: 0, right: 0, padding: '0.5rem 1rem', 
-                backgroundColor: emp.role === 'Admin' ? '#d4af37' : emp.role === 'Staff' ? '#6b7280' : 'rgba(255,255,255,0.05)', 
+                backgroundColor: emp.role === 'Admin' ? '#d4af37' : '#6b7280', 
                 color: emp.role === 'Admin' ? 'black' : 'white', 
                 fontSize: '0.7rem', fontWeight: 'bold', borderBottomLeftRadius: '12px' 
               }}>
