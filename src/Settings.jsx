@@ -197,13 +197,13 @@ export default function Settings() {
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0.2rem 0 0 0' }}>Configure your business profile and data preferences.</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'stretch' }}>
           
           {/* General Settings */}
-          <div className="glass-panel" style={{ padding: '1.2rem' }}>
-            <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}><Building size={16} color="var(--primary)" /> Business Profile</h3>
+          <div className="glass-panel" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem', flexShrink: 0 }}><Building size={16} color="var(--primary)" /> Business Profile</h3>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
               <div>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem' }}>Business Name</label>
                 <input className="input-field w-full" style={{ padding: '0.6rem 0.8rem', fontSize: '0.85rem' }} value={settings.businessName} onChange={e => setSettings({...settings, businessName: e.target.value})} />
@@ -220,12 +220,12 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem' }}>Invoice Footer Note</label>
-                <textarea className="input-field w-full" rows="2" style={{ height: 'auto', padding: '0.6rem 0.8rem', fontSize: '0.85rem' }} value={settings.invoiceNote} onChange={e => setSettings({...settings, invoiceNote: e.target.value})} />
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem', flexShrink: 0 }}>Invoice Footer Note</label>
+                <textarea className="input-field w-full" style={{ flex: 1, minHeight: '100px', padding: '0.6rem 0.8rem', fontSize: '0.85rem', resize: 'none' }} value={settings.invoiceNote} onChange={e => setSettings({...settings, invoiceNote: e.target.value})} />
               </div>
 
-              <button disabled={isLoading} onClick={handleSave} className="btn-primary" style={{ marginTop: '0', justifyContent: 'center', padding: '0.7rem', fontSize: '0.85rem' }}>
+              <button disabled={isLoading} onClick={handleSave} className="btn-primary" style={{ marginTop: 'auto', justifyContent: 'center', padding: '0.7rem', fontSize: '0.85rem', flexShrink: 0 }}>
                 <Save size={16} /> {isLoading ? 'Saving...' : 'Save Settings'}
               </button>
             </div>
