@@ -30,7 +30,9 @@ export default function Dashboard() {
     totalCashSales: 0,
     totalCashSalesForPeriod: 0,
     totalAllExpenses: 0,
-    totalDue: 0
+    totalDue: 0,
+    totalAllSalesProfit: 0,
+    totalPeriodSalesProfit: 0
   });
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [salesData, setSalesData] = useState([]);
@@ -64,10 +66,15 @@ export default function Dashboard() {
       const filteredSales = allSales.filter(s => s.date >= startDate && s.date <= endDate);
       
       const totalRevenue = filteredSales.reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
+      const allSalesProfit = allSales.reduce((sum, s) => sum + (parseFloat(s.profit) || 0), 0);
+      const periodSalesProfit = filteredSales.reduce((sum, s) => sum + (parseFloat(s.profit) || 0), 0);
+      
       setStats(prev => ({
         ...prev,
         totalSales: totalRevenue,
-        totalOrders: filteredSales.length
+        totalOrders: filteredSales.length,
+        totalAllSalesProfit: allSalesProfit,
+        totalPeriodSalesProfit: periodSalesProfit
       }));
 
       setRecentSales(filteredSales.sort((a,b) => b.date - a.date).slice(0, 5));
@@ -188,6 +195,28 @@ export default function Dashboard() {
 
     return () => { unsubSales(); unsubProducts(); unsubCustomers(); unsubExpenses(); unsubPurchases(); unsubPaymentsForPeriod(); unsubAllExpenses(); };
   }, [period, selectedDate, selectedMonth, selectedYear]);
+
+  const getFinancials = () => {
+    // 1. Calculate Global Cash in Hand
+    const globalCashInHand = stats.totalCashSales - stats.totalAllExpenses - stats.totalStockValue;
+
+    // 2. Calculate Overall Net Profit
+    const overallNetProfit = stats.totalAllSalesProfit - stats.totalAllExpenses;
+
+    // 3. Calculate Period Net Profit (Daily, Monthly, or Yearly)
+    let periodNetProfit = stats.totalPeriodSalesProfit - stats.totalExpenses;
+
+    // 4. Apply the user's rule: if global cash in hand is less than overall net profit, we adjust net profit
+    if (globalCashInHand < overallNetProfit) {
+      const diff = overallNetProfit - globalCashInHand;
+      periodNetProfit = periodNetProfit - diff;
+    }
+
+    return {
+      cashInHand: globalCashInHand,
+      netProfit: periodNetProfit
+    };
+  };
 
   return (
     <Layout>
@@ -315,7 +344,7 @@ export default function Dashboard() {
                 <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Cash in Hand</div>
               </div>
               <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#22c55e' }}>
-                PKR {(stats.totalCashSales - stats.totalAllExpenses).toLocaleString()}
+                PKR {getFinancials().cashInHand.toLocaleString()}
               </div>
             </div>
 
@@ -340,9 +369,9 @@ export default function Dashboard() {
             <div className="glass-panel" style={{ padding: '2rem', backgroundColor: 'var(--primary)', color: '#1a1a1a', flex: 1, position: 'relative', overflow: 'hidden' }}>
               <div style={{ fontSize: '1rem', fontWeight: '600', opacity: 0.7 }}>Net Profit</div>
               <div style={{ fontSize: '2.5rem', fontWeight: '900', margin: '0.5rem 0' }}>
-                PKR {(stats.totalSales - stats.totalPurchases - stats.totalExpenses).toLocaleString()}
+                PKR {getFinancials().netProfit.toLocaleString()}
               </div>
-              <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Total Revenue - (Purchases + Expenses)</p>
+              <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Sales Profit - Expenses (Adjusted for Stock)</p>
             </div>
           </div>
 

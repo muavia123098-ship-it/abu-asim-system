@@ -104,7 +104,29 @@ export default function Reports() {
     const cashSales = fSales.filter(s => s.paymentMethod === 'Cash').reduce((sum, s) => sum + (s.total || 0), 0);
     const totalPurchases = fPurchases.reduce((sum, p) => sum + (p.totalCost || 0), 0);
     const totalExpenses = fExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-    const profit = fSales.reduce((sum, s) => sum + (s.profit || 0), 0) - totalExpenses;
+    
+    // Calculate stock-adjusted profit
+    const totalStockValue = products.reduce((sum, p) => {
+      const qty = parseFloat(p.stock) || 0;
+      const cost = parseFloat(p.costPrice) || 0;
+      return sum + (qty > 0 ? qty * cost : 0);
+    }, 0);
+
+    const totalAllSalesProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0);
+    const totalAllExpenses = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+    const totalCashSales = sales.filter(s => s.paymentMethod === 'Cash').reduce((sum, s) => sum + s.total, 0);
+
+    const globalCashInHand = totalCashSales - totalAllExpenses - totalStockValue;
+    const overallNetProfit = totalAllSalesProfit - totalAllExpenses;
+
+    const periodSalesProfit = fSales.reduce((sum, s) => sum + (s.profit || 0), 0);
+    let profit = periodSalesProfit - totalExpenses;
+
+    if (globalCashInHand < overallNetProfit) {
+      const diff = overallNetProfit - globalCashInHand;
+      profit = profit - diff;
+    }
+
     const orders = fSales.length;
     const totalItems = fSales.reduce((sum, s) => sum + (s.items?.reduce((iq, item) => iq + (item.quantity || 0), 0) || 0), 0);
     const avgOrder = orders > 0 ? totalSales / orders : 0;
