@@ -17,14 +17,18 @@ import ErrorBoundary from './ErrorBoundary';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
-  const [alertInfo, setAlertInfo] = useState({ show: false, message: '' });
+  const [alertInfo, setAlertInfo] = useState({ show: false, message: '', onClose: null });
 
   useEffect(() => {
     const originalAlert = window.alert;
     
     // Override window.alert
-    window.alert = (message) => {
-      setAlertInfo({ show: true, message: String(message) });
+    window.alert = (message, onClose) => {
+      setAlertInfo({ 
+        show: true, 
+        message: String(message), 
+        onClose: typeof onClose === 'function' ? onClose : null 
+      });
     };
 
     return () => {
@@ -33,7 +37,11 @@ function App() {
   }, []);
 
   const handleCloseAlert = () => {
-    setAlertInfo({ show: false, message: '' });
+    const callback = alertInfo.onClose;
+    setAlertInfo({ show: false, message: '', onClose: null });
+    if (callback) {
+      callback();
+    }
   };
 
   // Keyboard accessibility: dismiss with Enter or Escape

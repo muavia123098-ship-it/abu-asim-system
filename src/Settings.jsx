@@ -146,8 +146,9 @@ export default function Settings() {
 
       setRestoreConfirm(null);
       setPendingFile(null);
-      alert('✅ Data restored successfully! App will now reload.');
-      window.location.reload();
+      alert('✅ Data restored successfully! App will now reload.', () => {
+        window.location.reload();
+      });
     } catch (err) {
       console.error(err);
       alert('Restore failed.');
@@ -166,8 +167,9 @@ export default function Settings() {
           localStorage.removeItem(key);
         }
       });
-      alert('⚠️ All data has been deleted. System is now reset.');
-      window.location.reload();
+      alert('⚠️ All data has been deleted. System is now reset.', () => {
+        window.location.reload();
+      });
     } catch (err) {
       console.error(err);
       alert('Reset failed.');
