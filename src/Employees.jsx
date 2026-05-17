@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from './Layout';
 import { 
   Users, UserPlus, Shield, DollarSign, Trash2, Edit3, 
-  Search, CheckCircle, X, BadgeCheck, UserCog, Upload, Image as ImageIcon
+  Search, CheckCircle, X, BadgeCheck, UserCog, Upload, Image as ImageIcon, AlertTriangle
 } from 'lucide-react';
 import { db, auth, collection, addDoc, onSnapshot, query, where, serverTimestamp, updateDoc, doc, deleteDoc } from './db';
 
@@ -11,6 +11,7 @@ export default function Employees() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [employeeToDelete, setEmployeeToDelete] = useState(null);
   
   // Form State
   const [formData, setFormData] = useState({ name: '', role: 'Staff', salary: '', phone: '', imageUrl: '' });
@@ -89,9 +90,14 @@ export default function Employees() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this employee?")) {
-      await deleteDoc(doc(db, 'employees', id));
+  const handleDelete = (id) => {
+    setEmployeeToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (employeeToDelete) {
+      await deleteDoc(doc(db, 'employees', employeeToDelete));
+      setEmployeeToDelete(null);
     }
   };
 
@@ -249,6 +255,34 @@ export default function Employees() {
           </div>
         )}
 
+      {/* Custom Delete Confirmation Modal */}
+      {employeeToDelete && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div className="glass-panel" style={{ width: '420px', padding: '2.5rem', textAlign: 'center', border: '1px solid var(--danger)' }}>
+            <div style={{ width: '70px', height: '70px', borderRadius: '50%', backgroundColor: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: 'var(--danger)' }}>
+              <AlertTriangle size={36} />
+            </div>
+            <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.6rem', fontWeight: '800', color: 'white' }}>Remove Staff?</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '2rem' }}>
+              Kya aap waqai is staff member ko delete karna chahte hain? Isse unka <strong style={{ color: '#ef4444' }}>record aur details permanent delete</strong> ho jayengi. Yeh action wapas nahi liya ja sakta.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button
+                onClick={() => setEmployeeToDelete(null)}
+                style={{ flex: 1, padding: '1rem', borderRadius: '14px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', color: 'var(--text-main)', cursor: 'pointer', fontWeight: '600' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{ flex: 1.2, padding: '1rem', borderRadius: '14px', backgroundColor: 'var(--danger)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '800', boxShadow: '0 4px 15px rgba(239, 68, 68, 0.4)' }}
+              >
+                Haan, Delete Karo!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </Layout>
   );

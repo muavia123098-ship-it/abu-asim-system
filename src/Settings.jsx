@@ -19,6 +19,7 @@ export default function Settings() {
   const [restoreConfirm, setRestoreConfirm] = useState(null);
   const [pendingFile, setPendingFile] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
   const [fileStatus, setFileStatus] = useState(getFileStatus());
   const [fileConnecting, setFileConnecting] = useState(false);
   const [showFileSuccess, setShowFileSuccess] = useState(false);
@@ -192,10 +193,12 @@ export default function Settings() {
 
   // ── System Licensing & Device Authorization Handlers ──────
   const handleDeactivateLicense = () => {
-    if (window.confirm("⚠️ Kya aap waqai is device se software license deactivate karna chahte hain? Deactivate karne par software lock ho jaega!")) {
-      localStorage.removeItem('abu_asim_system_activated');
-      window.location.reload();
-    }
+    setShowDeactivateConfirm(true);
+  };
+
+  const confirmDeactivateLicense = () => {
+    localStorage.removeItem('abu_asim_system_activated');
+    window.location.reload();
   };
 
   return (
@@ -433,6 +436,35 @@ export default function Settings() {
                 style={{ flex: 1.2, padding: '1rem', borderRadius: '14px', backgroundColor: 'var(--danger)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '800', boxShadow: '0 4px 15px rgba(239, 68, 68, 0.4)' }}
               >
                 {isLoading ? 'Resetting...' : 'Haan, Sab Delete Karo!'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* License Deactivation Confirmation Modal */}
+      {showDeactivateConfirm && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div className="glass-panel" style={{ width: '420px', padding: '2.5rem', textAlign: 'center', border: '1px solid var(--danger)' }}>
+            <div style={{ width: '70px', height: '70px', borderRadius: '50%', backgroundColor: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: 'var(--danger)' }}>
+              <Key size={36} />
+            </div>
+            <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.6rem', fontWeight: '800', color: 'white' }}>Deactivate License?</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '2rem' }}>
+              Kya aap waqai is device se software license deactivate karna chahte hain? Deactivate karne par software <strong style={{ color: '#ef4444' }}>foren lock</strong> ho jaega aur bina activation key ke access nahi hoga.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button
+                onClick={() => setShowDeactivateConfirm(false)}
+                style={{ flex: 1, padding: '1rem', borderRadius: '14px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', color: 'var(--text-main)', cursor: 'pointer', fontWeight: '600' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeactivateLicense}
+                style={{ flex: 1.2, padding: '1rem', borderRadius: '14px', backgroundColor: 'var(--danger)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '800', boxShadow: '0 4px 15px rgba(239, 68, 68, 0.4)' }}
+              >
+                Haan, Deactivate Karo!
               </button>
             </div>
           </div>
