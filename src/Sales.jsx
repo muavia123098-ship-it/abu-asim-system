@@ -290,21 +290,48 @@ export default function Sales() {
 
         {saleCompleted && (
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-             <div ref={invoiceRef} className="glass-panel" style={{ width: '400px', padding: '2rem', backgroundColor: 'white', color: 'black' }}>
-                <h2 style={{ textAlign: 'center', margin: '0 0 1rem 0' }}>ABU ASIM INVOICE</h2>
-                <div style={{ marginBottom: '1rem', fontSize: '0.9rem' }}><div>Customer: {saleCompleted.customerName}</div><div>Date: {new Date().toLocaleDateString()}</div></div>
-                <table style={{ width: '100%', marginBottom: '1rem', fontSize: '0.85rem' }}>
-                  <thead><tr style={{ borderBottom: '1px solid #eee' }}><th>Item</th><th>Qty</th><th>Total</th></tr></thead>
-                  <tbody>{saleCompleted.items.map((i, idx) => <tr key={idx}><td>{i.name}</td><td>{i.quantity}</td><td>{(i.sellingPrice || i.price) * i.quantity}</td></tr>)}</tbody>
+             <div ref={invoiceRef} style={{ 
+               width: '420px', 
+               padding: '2rem', 
+               backgroundColor: '#ffffff', 
+               color: '#000000', 
+               borderRadius: '16px',
+               boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+               fontFamily: "'Plus Jakarta Sans', sans-serif"
+             }}>
+                <h2 style={{ textAlign: 'center', margin: '0 0 1rem 0', fontFamily: "'Outfit', sans-serif", fontWeight: '800', letterSpacing: '0.5px' }}>ABU ASIM INVOICE</h2>
+                <div style={{ marginBottom: '1.2rem', fontSize: '0.9rem', color: '#000000', borderBottom: '1px solid #ddd', paddingBottom: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                  <div><b>Customer:</b> {saleCompleted.customerName}</div>
+                  <div><b>Date:</b> {new Date().toLocaleDateString('en-PK', { dateStyle: 'long' })}</div>
+                </div>
+                <table style={{ width: '100%', marginBottom: '1.2rem', fontSize: '0.85rem', color: '#000000', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1.5px solid #000000', textAlign: 'left' }}>
+                      <th style={{ padding: '0.4rem 0' }}>Item</th>
+                      <th style={{ padding: '0.4rem 0', textAlign: 'center' }}>Qty</th>
+                      <th style={{ padding: '0.4rem 0', textAlign: 'right' }}>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {saleCompleted.items.map((i, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px dashed #eee' }}>
+                        <td style={{ padding: '0.4rem 0', fontWeight: '500' }}>{i.name}</td>
+                        <td style={{ padding: '0.4rem 0', textAlign: 'center' }}>{i.quantity}</td>
+                        <td style={{ padding: '0.4rem 0', textAlign: 'right', fontWeight: '700' }}>{((i.sellingPrice || i.price) * i.quantity).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
-                <div style={{ textAlign: 'right', borderTop: '1px solid #eee', paddingTop: '0.5rem' }}>
-                  <div>Total: PKR {saleCompleted.total}</div>
-                  <div>Received: PKR {saleCompleted.amountPaid}</div>
-                  <div style={{ fontWeight: 'bold' }}>Baqaya: PKR {saleCompleted.balanceDue}</div>
+                <div style={{ textAlign: 'right', borderTop: '1.5px solid #000000', paddingTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.9rem', color: '#000000' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#444' }}>Total:</span><span>PKR {saleCompleted.total.toLocaleString()}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#444' }}>Received:</span><span>PKR {saleCompleted.amountPaid.toLocaleString()}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', fontSize: '1rem', borderTop: '1px dashed #ddd', paddingTop: '0.3rem', marginTop: '0.2rem' }}>
+                    <span>Baqaya:</span><span>PKR {saleCompleted.balanceDue.toLocaleString()}</span>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                  <button disabled={isCopying} className="btn-primary" style={{ flex: 1, justifyContent: 'center', backgroundColor: '#25D366' }} onClick={copyInvoice}>{isCopying ? '...' : 'Copy for WhatsApp'}</button>
-                  <button onClick={() => setSaleCompleted(null)} style={{ flex: 1, backgroundColor: '#eee', color: 'black', border: 'none', borderRadius: '8px' }}>Close</button>
+                  <button disabled={isCopying} className="btn-primary" style={{ flex: 1, justifyContent: 'center', backgroundColor: '#25D366', color: '#ffffff !important' }} onClick={copyInvoice}>{isCopying ? '...' : 'WhatsApp'}</button>
+                  <button onClick={() => setSaleCompleted(null)} style={{ flex: 1, backgroundColor: '#f1f1f1', color: '#000000', border: '1px solid #ddd', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit' }}>Close</button>
                 </div>
              </div>
           </div>

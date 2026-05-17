@@ -140,11 +140,24 @@ export default function Employees() {
               </div>
               
               <div style={{ display: 'flex', gap: '1.2rem', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <div style={{ width: '56px', height: '56px', backgroundColor: 'var(--bg-main)', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', overflow: 'hidden' }}>
+                <div style={{ 
+                  width: '84px', 
+                  height: '84px', 
+                  backgroundColor: 'rgba(0, 0, 0, 0.25)', 
+                  borderRadius: '50%', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  color: 'var(--primary)', 
+                  overflow: 'hidden',
+                  border: '2.5px solid var(--primary)',
+                  boxShadow: '0 6px 16px rgba(212, 175, 55, 0.18)',
+                  flexShrink: 0
+                }}>
                   {emp.imageUrl ? (
                     <img src={emp.imageUrl} alt={emp.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    emp.role === 'Admin' ? <Shield size={28} /> : <Users size={28} />
+                    emp.role === 'Admin' ? <Shield size={36} /> : <Users size={36} />
                   )}
                 </div>
                 <div>

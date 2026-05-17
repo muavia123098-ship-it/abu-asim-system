@@ -221,42 +221,44 @@ export default function Reports() {
       }).filter(m => m.sales > 0 || m.expenses > 0);
 
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', color: '#000000' }}>
           {yearlyMonthlyStats.length > 0 ? (
             <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: '0.2rem', marginBottom: '0.5rem', color: '#333' }}>📅 MONTHLY BREAKDOWN</div>
-              {yearlyMonthlyStats.map(m => (
-                <div key={m.name} style={{ display: 'flex', flexDirection: 'column', marginBottom: '0.4rem', borderBottom: '1px dashed #eee', paddingBottom: '0.3rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                    <span>{m.name}</span>
-                    <span style={{ color: m.profit >= 0 ? '#166534' : '#d32f2f' }}>PKR {m.profit.toLocaleString()}</span>
+              <div style={{ fontSize: '0.8rem', fontWeight: '800', borderBottom: '1.5px solid #000', paddingBottom: '0.3rem', marginBottom: '0.6rem', color: '#000000', letterSpacing: '0.5px' }}>📅 MONTHLY BREAKDOWN</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem 1rem' }}>
+                {yearlyMonthlyStats.map(m => (
+                  <div key={m.name} style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px dashed #ccc', paddingBottom: '0.3rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: '700', color: '#000000' }}>
+                      <span>{m.name}</span>
+                      <span style={{ color: m.profit >= 0 ? '#166534' : '#d32f2f', fontWeight: '700' }}>PKR {m.profit.toLocaleString()}</span>
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: '#111', display: 'flex', justifyContent: 'space-between', marginTop: '0.15rem' }}>
+                      <span>Rev: {m.sales.toLocaleString()}</span>
+                      <span>Exp: {m.expenses.toLocaleString()}</span>
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.65rem', color: '#666', display: 'flex', justifyContent: 'space-between', marginTop: '0.2rem' }}>
-                    <span>Revenue: {m.sales.toLocaleString()}</span>
-                    <span>Exp: {m.expenses.toLocaleString()}</span>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           ) : (
-            <div style={{ textAlign: 'center', color: '#888', fontSize: '0.8rem', padding: '1rem 0' }}>No records found for this year.</div>
+            <div style={{ textAlign: 'center', color: '#444', fontSize: '0.8rem', padding: '1rem 0' }}>No records found for this year.</div>
           )}
 
-          <div style={{ borderTop: '2px dashed #ccc', paddingTop: '0.8rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-              <span style={{ color: '#555' }}>Total Cash Revenue</span>
-              <span style={{ fontWeight: 'bold' }}>{cashSalesAmount.toLocaleString()}</span>
+          <div style={{ borderTop: '2px dashed #000', paddingTop: '0.8rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#000000' }}>
+              <span style={{ fontWeight: '500' }}>Total Cash Revenue</span>
+              <span style={{ fontWeight: '700' }}>{cashSalesAmount.toLocaleString()}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-              <span style={{ color: '#555' }}>Total Bank/Online Revenue</span>
-              <span style={{ fontWeight: 'bold' }}>{bankSalesAmount.toLocaleString()}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#000000' }}>
+              <span style={{ fontWeight: '500' }}>Total Bank/Online Revenue</span>
+              <span style={{ fontWeight: '700' }}>{bankSalesAmount.toLocaleString()}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-              <span style={{ color: '#555' }}>Total Expenses</span>
-              <span style={{ color: '#d32f2f', fontWeight: 'bold' }}>-{filteredData.expenses.toLocaleString()}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#000000' }}>
+              <span style={{ fontWeight: '500' }}>Total Expenses</span>
+              <span style={{ color: '#d32f2f', fontWeight: '700' }}>-{filteredData.expenses.toLocaleString()}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginTop: '0.5rem', backgroundColor: '#f0fdf4', padding: '0.5rem', borderRadius: '6px', border: '1px solid #dcfce7' }}>
-              <span style={{ color: '#166534', fontWeight: 'bold' }}>Net Profit</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', marginTop: '0.5rem', backgroundColor: '#f0fdf4', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1.5px solid #dcfce7' }}>
+              <span style={{ color: '#166534', fontWeight: '800' }}>Net Profit</span>
               <span style={{ color: '#166534', fontWeight: '900' }}>PKR {filteredData.profit.toLocaleString()}</span>
             </div>
           </div>
@@ -265,103 +267,121 @@ export default function Reports() {
     }
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem', width: '100%', color: '#000000' }}>
         {physicalSales.length > 0 && (
           <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: '0.2rem', marginBottom: '0.5rem', color: '#333' }}>🛒 PHYSICAL SALES</div>
-            {physicalSales.map(s => (
-              <div key={s.id} style={{ display: 'flex', flexDirection: 'column', marginBottom: '0.4rem', borderBottom: '1px dashed #eee', paddingBottom: '0.3rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem' }}>
-                  <span style={{ fontWeight: '600' }}>{s.customerName} {s.customerId && s.customerId !== 'guest' ? '(VIP)' : '(Walk-in)'}</span>
-                  <span style={{ fontWeight: 'bold' }}>{s.total.toLocaleString()}</span>
+            <div style={{ fontSize: '0.8rem', fontWeight: '800', borderBottom: '1.5px solid #000', paddingBottom: '0.3rem', marginBottom: '0.6rem', color: '#000000', letterSpacing: '0.5px' }}>🛒 PHYSICAL SALES</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem 1rem' }}>
+              {physicalSales.map(s => (
+                <div key={s.id} style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px dashed #ccc', paddingBottom: '0.3rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: '700', color: '#000000' }}>
+                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '170px' }}>
+                      {s.customerName} {s.customerId && s.customerId !== 'guest' ? '⭐' : ''}
+                    </span>
+                    <span style={{ whiteSpace: 'nowrap' }}>{s.total.toLocaleString()}</span>
+                  </div>
+                  <div style={{ fontSize: '0.65rem', color: '#111', display: 'flex', justifyContent: 'space-between', marginTop: '0.15rem' }}>
+                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '150px' }}>
+                      {s.items?.map(i => `${i.name} x${i.quantity}`).join(', ')}
+                    </span>
+                    <span style={{ fontWeight: '600' }}>{s.paymentMethod === 'Cash' ? 'Cash' : 'Bank'}</span>
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.65rem', color: '#666', display: 'flex', justifyContent: 'space-between', marginTop: '0.2rem' }}>
-                  <span style={{ flex: 1, paddingRight: '0.5rem' }}>{s.items?.map(i => `${i.name} x${i.quantity}`).join(', ')}</span>
-                  <span>{s.paymentMethod}</span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
         {onlineSales.length > 0 && (
           <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: '0.2rem', marginBottom: '0.5rem', color: '#333' }}>📦 ONLINE ORDERS</div>
-            {onlineSales.map(s => (
-              <div key={s.id} style={{ display: 'flex', flexDirection: 'column', marginBottom: '0.4rem', borderBottom: '1px dashed #eee', paddingBottom: '0.3rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem' }}>
-                  <span style={{ fontWeight: '600' }}>{s.customerName}</span>
-                  <span style={{ fontWeight: 'bold' }}>{s.total.toLocaleString()}</span>
+            <div style={{ fontSize: '0.8rem', fontWeight: '800', borderBottom: '1.5px solid #000', paddingBottom: '0.3rem', marginBottom: '0.6rem', color: '#000000', letterSpacing: '0.5px' }}>📦 ONLINE ORDERS</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem 1rem' }}>
+              {onlineSales.map(s => (
+                <div key={s.id} style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px dashed #ccc', paddingBottom: '0.3rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: '700', color: '#000000' }}>
+                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '170px' }}>
+                      {s.customerName}
+                    </span>
+                    <span style={{ whiteSpace: 'nowrap' }}>{s.total.toLocaleString()}</span>
+                  </div>
+                  <div style={{ fontSize: '0.65rem', color: '#111', display: 'flex', justifyContent: 'space-between', marginTop: '0.15rem' }}>
+                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '150px' }}>
+                      {s.items?.map(i => `${i.name} x${i.quantity}`).join(', ')}
+                    </span>
+                    <span style={{ fontWeight: '600' }}>{s.paymentMethod === 'Cash' ? 'Cash' : 'Bank'}</span>
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.65rem', color: '#666', display: 'flex', justifyContent: 'space-between', marginTop: '0.2rem' }}>
-                  <span style={{ flex: 1, paddingRight: '0.5rem' }}>{s.items?.map(i => `${i.name} x${i.quantity}`).join(', ')}</span>
-                  <span>{s.paymentMethod}</span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
         {expenses.length > 0 && (
           <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: '0.2rem', marginBottom: '0.5rem', color: '#d32f2f' }}>📉 EXPENSES</div>
-            {expenses.map(e => (
-              <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '0.3rem' }}>
-                <span style={{ color: '#555', flex: 1, paddingRight: '0.5rem' }}>{e.title}</span>
-                <span style={{ color: '#d32f2f', fontWeight: 'bold' }}>-{parseFloat(e.amount).toLocaleString()}</span>
-              </div>
-            ))}
+            <div style={{ fontSize: '0.8rem', fontWeight: '800', borderBottom: '1.5px solid #d32f2f', paddingBottom: '0.3rem', marginBottom: '0.6rem', color: '#d32f2f', letterSpacing: '0.5px' }}>📉 EXPENSES</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1rem' }}>
+              {expenses.map(e => (
+                <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', borderBottom: '1px dashed #fca5a5', paddingBottom: '0.2rem' }}>
+                  <span style={{ color: '#111', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '170px' }}>{e.title}</span>
+                  <span style={{ color: '#d32f2f', fontWeight: '700' }}>-{parseFloat(e.amount).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {period === 'Monthly' && vipDebts.length > 0 && (
           <div style={{ marginTop: '0.5rem' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: '0.2rem', marginBottom: '0.5rem', color: '#b45309' }}>📒 VIP OUTSTANDING (QARZA)</div>
-            {vipDebts.map(vip => (
-              <div key={vip.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '0.3rem' }}>
-                <span style={{ color: '#555', fontWeight: 'bold' }}>{vip.name}</span>
-                <span style={{ color: '#b45309', fontWeight: 'bold' }}>PKR {vip.balance.toLocaleString()}</span>
-              </div>
-            ))}
+            <div style={{ fontSize: '0.8rem', fontWeight: '800', borderBottom: '1.5px solid #b45309', paddingBottom: '0.3rem', marginBottom: '0.6rem', color: '#b45309', letterSpacing: '0.5px' }}>📒 VIP OUTSTANDING (QARZA)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1rem' }}>
+              {vipDebts.map(vip => (
+                <div key={vip.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', borderBottom: '1px dashed #fed7aa', paddingBottom: '0.2rem' }}>
+                  <span style={{ color: '#111', fontWeight: '700' }}>{vip.name}</span>
+                  <span style={{ color: '#b45309', fontWeight: '800' }}>{vip.balance.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {period === 'Monthly' && topProductsByCategory.length > 0 && (
           <div style={{ marginTop: '0.5rem' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: '0.2rem', marginBottom: '0.5rem', color: '#1d4ed8' }}>🏆 TOP 3 PRODUCTS (THIS MONTH)</div>
-            {topProductsByCategory.map(catData => (
-              <div key={catData.category} style={{ marginBottom: '0.5rem' }}>
-                <div style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#555', marginBottom: '0.2rem', textTransform: 'uppercase' }}>{catData.category}</div>
-                {catData.items.map(([name, qty]) => (
-                  <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '0.2rem', paddingLeft: '0.5rem' }}>
-                    <span style={{ color: '#666' }}>{name}</span>
-                    <span style={{ color: '#1d4ed8', fontWeight: 'bold' }}>{qty} sold</span>
-                  </div>
-                ))}
-              </div>
-            ))}
+            <div style={{ fontSize: '0.8rem', fontWeight: '800', borderBottom: '1.5px solid #1d4ed8', paddingBottom: '0.3rem', marginBottom: '0.6rem', color: '#1d4ed8', letterSpacing: '0.5px' }}>🏆 TOP 3 PRODUCTS (THIS MONTH)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem 1.2rem' }}>
+              {topProductsByCategory.map(catData => (
+                <div key={catData.category} style={{ borderBottom: '1px dashed #bfdbfe', paddingBottom: '0.4rem' }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#1d4ed8', marginBottom: '0.2rem', textTransform: 'uppercase' }}>{catData.category}</div>
+                  {catData.items.map(([name, qty]) => (
+                    <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '0.15rem' }}>
+                      <span style={{ color: '#111' }}>{name}</span>
+                      <span style={{ color: '#1d4ed8', fontWeight: '700' }}>{qty} sold</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {sales.length === 0 && expenses.length === 0 && (
-          <div style={{ textAlign: 'center', color: '#888', fontSize: '0.8rem', padding: '1rem 0' }}>No records found for this period.</div>
+          <div style={{ textAlign: 'center', color: '#444', fontSize: '0.8rem', padding: '1rem 0' }}>No records found for this period.</div>
         )}
 
-        <div style={{ borderTop: '2px dashed #ccc', paddingTop: '0.8rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-            <span style={{ color: '#555' }}>Total Cash Revenue</span>
-            <span style={{ fontWeight: 'bold' }}>{cashSalesAmount.toLocaleString()}</span>
+        <div style={{ borderTop: '2px dashed #000', paddingTop: '0.8rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#000000' }}>
+            <span style={{ fontWeight: '500' }}>Total Cash Revenue</span>
+            <span style={{ fontWeight: '700' }}>{cashSalesAmount.toLocaleString()}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-            <span style={{ color: '#555' }}>Total Bank/Online Revenue</span>
-            <span style={{ fontWeight: 'bold' }}>{bankSalesAmount.toLocaleString()}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#000000' }}>
+            <span style={{ fontWeight: '500' }}>Total Bank/Online Revenue</span>
+            <span style={{ fontWeight: '700' }}>{bankSalesAmount.toLocaleString()}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-            <span style={{ color: '#555' }}>Total Expenses</span>
-            <span style={{ color: '#d32f2f', fontWeight: 'bold' }}>-{filteredData.expenses.toLocaleString()}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#000000' }}>
+            <span style={{ fontWeight: '500' }}>Total Expenses</span>
+            <span style={{ color: '#d32f2f', fontWeight: '700' }}>-{filteredData.expenses.toLocaleString()}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginTop: '0.5rem', backgroundColor: '#f0fdf4', padding: '0.5rem', borderRadius: '6px', border: '1px solid #dcfce7' }}>
-            <span style={{ color: '#166534', fontWeight: 'bold' }}>Net Profit</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', marginTop: '0.5rem', backgroundColor: '#f0fdf4', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1.5px solid #dcfce7' }}>
+            <span style={{ color: '#166534', fontWeight: '800' }}>Net Profit</span>
             <span style={{ color: '#166534', fontWeight: '900' }}>PKR {filteredData.profit.toLocaleString()}</span>
           </div>
         </div>
@@ -480,7 +500,16 @@ export default function Reports() {
         {showSlip && (
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 1000, overflowY: 'auto', padding: '2rem 0' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100%' }}>
-              <div ref={slipRef} style={{ width: '350px', backgroundColor: '#fff', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', color: '#000', margin: 'auto' }}>
+              <div ref={slipRef} style={{ 
+                width: '580px', 
+                backgroundColor: '#ffffff', 
+                borderRadius: '16px', 
+                padding: '1.75rem', 
+                boxShadow: '0 20px 50px rgba(0,0,0,0.6)', 
+                color: '#000000', 
+                margin: 'auto',
+                fontFamily: "'Plus Jakarta Sans', sans-serif"
+              }}>
                 <div style={{ textAlign: 'center', marginBottom: '1.2rem' }}>
                   <img src="/logo.png" style={{ width: '60px', height: 'auto', marginBottom: '0.5rem', objectFit: 'contain' }} />
                   <h2 style={{ fontSize: '1.1rem', margin: 0, letterSpacing: '1px', fontWeight: '800' }}>ABU ASIM</h2>

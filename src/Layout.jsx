@@ -159,30 +159,52 @@ function NavItem({ icon, label, active, onClick }) {
     <button onClick={onClick} style={{ 
       display: 'flex',
       alignItems: 'center',
-      gap: '0.75rem',
+      gap: '0.85rem',
       width: '100%',
-      padding: '0.75rem 1rem', 
-      background: active ? 'var(--primary)' : 'transparent', 
-      color: active ? 'white' : 'var(--sidebar-text-muted)', 
-      border: 'none', 
-      borderRadius: '8px', 
+      padding: '0.85rem 1.1rem', 
+      background: active ? 'var(--sidebar-active-bg)' : 'transparent', 
+      color: active ? 'var(--primary)' : 'var(--sidebar-text-muted)', 
+      border: active ? '1px solid var(--sidebar-active-border)' : '1px solid transparent', 
+      borderLeft: active ? '4px solid var(--primary)' : '1px solid transparent',
+      borderRadius: '14px', 
       cursor: 'pointer',
       textAlign: 'left',
-      fontWeight: '500',
-      fontSize: '0.85rem',
-      transition: 'all 0.2s'
+      fontWeight: active ? '700' : '500',
+      fontSize: '0.9rem',
+      boxShadow: active ? '0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)' : 'none',
+      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+      transform: active ? 'translateX(2px)' : 'none',
     }}
     onMouseOver={(e) => {
-      if(!active) e.currentTarget.style.color = 'var(--sidebar-text)';
-      if(!active) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
+      if(!active) {
+        e.currentTarget.style.color = 'var(--primary)';
+        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+        e.currentTarget.style.transform = 'translateX(4px)';
+      }
     }}
     onMouseOut={(e) => {
-      if(!active) e.currentTarget.style.color = 'var(--sidebar-text-muted)';
-      if(!active) e.currentTarget.style.backgroundColor = 'transparent';
+      if(!active) {
+        e.currentTarget.style.color = 'var(--sidebar-text-muted)';
+        e.currentTarget.style.backgroundColor = 'transparent';
+        e.currentTarget.style.borderColor = 'transparent';
+        e.currentTarget.style.transform = 'none';
+      }
     }}
     >
-      {icon}
-      {label}
+      <span style={{ 
+        color: active ? 'var(--primary)' : 'inherit',
+        transition: 'color 0.25s',
+        display: 'flex',
+        alignItems: 'center'
+      }}>
+        {icon}
+      </span>
+      <span style={{ 
+        letterSpacing: '0.3px'
+      }}>
+        {label}
+      </span>
     </button>
   );
 }

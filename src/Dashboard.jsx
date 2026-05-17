@@ -37,8 +37,11 @@ export default function Dashboard() {
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [salesData, setSalesData] = useState([]);
   const [recentSales, setRecentSales] = useState([]);
-  const [topProducts, setTopProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [allSalesForFinancials, setAllSalesForFinancials] = useState([]);
+  const [filteredSalesForFinancials, setFilteredSalesForFinancials] = useState([]);
+  const [totalAllDues, setTotalAllDues] = useState(0);
+  const [firstPurchaseCost, setFirstPurchaseCost] = useState(0);
 
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const years = Array.from({length: 5}, (_, i) => new Date().getFullYear() - i);
@@ -46,6 +49,64 @@ export default function Dashboard() {
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
+
+    // ── SELF-HEALING SYSTEM REPAIR ───────────────────────────
+    try {
+      let changed = false;
+      const paymentsKey = 'abu_asim_payments';
+      const paymentsRaw = localStorage.getItem(paymentsKey);
+      if (paymentsRaw) {
+        const payments = JSON.parse(paymentsRaw);
+        let paymentsUpdated = false;
+        payments.forEach(p => {
+          if (!p.method) {
+            p.method = 'Cash'; // Default missing method to Cash
+            paymentsUpdated = true;
+          }
+        });
+        if (paymentsUpdated) {
+          localStorage.setItem(paymentsKey, JSON.stringify(payments));
+          changed = true;
+        }
+      }
+
+      const customersKey = 'abu_asim_customers';
+      const salesKey = 'abu_asim_sales';
+      const customersRaw = localStorage.getItem(customersKey);
+      const salesRaw = localStorage.getItem(salesKey);
+      if (customersRaw && salesRaw && paymentsRaw) {
+        const customers = JSON.parse(customersRaw);
+        const sales = JSON.parse(salesRaw);
+        const payments = JSON.parse(localStorage.getItem(paymentsKey));
+
+        let customersUpdated = false;
+        customers.forEach(c => {
+          const cSales = sales.filter(s => s.customerId === c.id || s.customerPhone === c.phone);
+          const totalSpent = cSales.reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
+
+          const cPayments = payments.filter(p => p.customerId === c.id || p.customerPhone === c.phone);
+          const totalPaid = cPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+
+          const exactBalance = totalSpent - totalPaid;
+          if (Math.abs((c.balance || 0) - exactBalance) > 0.01) {
+            c.balance = exactBalance;
+            customersUpdated = true;
+          }
+        });
+
+        if (customersUpdated) {
+          localStorage.setItem(customersKey, JSON.stringify(customers));
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        window.dispatchEvent(new CustomEvent('db-change-payments'));
+        window.dispatchEvent(new CustomEvent('db-change-customers'));
+      }
+    } catch (e) {
+      console.error("[Self-Healing] Sync failed:", e);
+    }
 
     let startDate, endDate;
     if (period === 'daily') {
@@ -69,6 +130,9 @@ export default function Dashboard() {
       const allSalesProfit = allSales.reduce((sum, s) => sum + (parseFloat(s.profit) || 0), 0);
       const periodSalesProfit = filteredSales.reduce((sum, s) => sum + (parseFloat(s.profit) || 0), 0);
       
+      setAllSalesForFinancials(allSales);
+      setFilteredSalesForFinancials(filteredSales);
+
       setStats(prev => ({
         ...prev,
         totalSales: totalRevenue,
@@ -147,6 +211,9 @@ export default function Dashboard() {
     });
 
     const unsubCustomers = onSnapshot(query(collection(db, 'customers'), where('userId', '==', user.uid)), (snapshot) => {
+      const allCustomers = snapshot.docs.map(doc => doc.data());
+      const dues = allCustomers.reduce((sum, c) => sum + (parseFloat(c.balance) || 0), 0);
+      setTotalAllDues(dues);
       setStats(prev => ({ ...prev, totalCustomers: snapshot.size }));
       setLoading(false);
     });
@@ -163,6 +230,16 @@ export default function Dashboard() {
         }
         return { ...data, pDate };
       });
+      
+      const sortedPurch = [...allPurchases].sort((a, b) => a.pDate - b.pDate);
+      let firstPurch = 0;
+      if (sortedPurch.length > 0) {
+        const earliestDate = sortedPurch[0].date || sortedPurch[0].createdAt;
+        const earliestItems = sortedPurch.filter(p => (p.date || p.createdAt) === earliestDate);
+        firstPurch = earliestItems.reduce((sum, p) => sum + (parseFloat(p.totalCost) || 0), 0);
+      }
+      setFirstPurchaseCost(firstPurch);
+
       const filteredPurchases = allPurchases.filter(p => p.pDate >= startDate && p.pDate <= endDate);
       const totalPurch = filteredPurchases.reduce((sum, p) => sum + (parseFloat(p.totalCost) || 0), 0);
       const totalAllPurch = allPurchases.reduce((sum, p) => sum + (parseFloat(p.totalCost) || 0), 0);
@@ -197,19 +274,36 @@ export default function Dashboard() {
   }, [period, selectedDate, selectedMonth, selectedYear]);
 
   const getFinancials = () => {
-    // 1. Calculate Global Cash in Hand
-    const globalCashInHand = stats.totalCashSales - stats.totalAllExpenses - stats.totalStockValue;
+    // 1. Calculate average profit margin of all VIP sales
+    const vipSales = allSalesForFinancials.filter(s => s.customerId && s.customerId !== 'guest');
+    const totalVipRevenue = vipSales.reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
+    const totalVipProfit = vipSales.reduce((sum, s) => sum + (parseFloat(s.profit) || 0), 0);
+    const avgVipMargin = totalVipRevenue > 0 ? (totalVipProfit / totalVipRevenue) : 0;
 
-    // 2. Calculate Overall Net Profit
-    const overallNetProfit = stats.totalAllSalesProfit - stats.totalAllExpenses;
+    // Unrealized profit in overall and period dues
+    const overallUnrealizedProfit = totalAllDues * avgVipMargin;
 
-    // 3. Calculate Period Net Profit (Daily, Monthly, or Yearly)
-    let periodNetProfit = stats.totalPeriodSalesProfit - stats.totalExpenses;
+    // Calculate period specific unpaid amount at checkout
+    const periodVipSales = filteredSalesForFinancials.filter(s => s.customerId && s.customerId !== 'guest');
+    const periodUnrealizedProfit = periodVipSales.reduce((sum, s) => {
+      const unpaidAtCheckout = (parseFloat(s.total) || 0) - (parseFloat(s.amountPaid) || 0);
+      return sum + Math.max(0, unpaidAtCheckout * (avgVipMargin || 0.3));
+    }, 0);
 
-    // 4. Apply the user's rule: if global cash in hand is less than overall net profit, we adjust net profit
-    if (globalCashInHand < overallNetProfit) {
-      const diff = overallNetProfit - globalCashInHand;
-      periodNetProfit = periodNetProfit - diff;
+    // 2. Calculate Global Cash in Hand
+    // globalCashInHand = Total Cash Received - Total Expenses - (Total Purchases - First Purchase Cost)
+    const totalCashPaidForPurchases = Math.max(0, stats.totalAllPurchases - (firstPurchaseCost || 0));
+    const globalCashInHand = stats.totalCashSales - stats.totalAllExpenses - totalCashPaidForPurchases;
+
+    // 3. Calculate Overall Net Profit (Realized on Cash-Basis)
+    const overallNetProfit = (stats.totalAllSalesProfit - overallUnrealizedProfit) - stats.totalAllExpenses;
+
+    // 4. Calculate Period Net Profit (Realized on Cash-Basis)
+    let periodNetProfit = (stats.totalPeriodSalesProfit - periodUnrealizedProfit) - stats.totalExpenses;
+
+    // Apply the cash constraint: profit cannot exceed cash in hand (unless cash in hand is negative, then pin to 0 or same)
+    if (periodNetProfit > globalCashInHand && globalCashInHand >= 0) {
+      periodNetProfit = globalCashInHand;
     }
 
     return {

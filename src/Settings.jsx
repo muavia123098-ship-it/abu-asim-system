@@ -190,6 +190,87 @@ export default function Settings() {
     setFileStatus(getFileStatus());
   };
 
+  // ── Master Passcode Security States & Handlers ─────────────
+  const [passcodeActive, setPasscodeActive] = useState(!!localStorage.getItem('abu_asim_master_passcode'));
+  const [securityForm, setSecurityForm] = useState(null); // 'enable', 'change', 'disable', null
+  const [pinCurrent, setPinCurrent] = useState('');
+  const [pinNew, setPinNew] = useState('');
+  const [pinConfirm, setPinConfirm] = useState('');
+  const [secError, setSecError] = useState('');
+
+  const resetSecurityFormState = () => {
+    setSecurityForm(null);
+    setPinCurrent('');
+    setPinNew('');
+    setPinConfirm('');
+    setSecError('');
+  };
+
+  const getStoredPin = () => {
+    try {
+      const encoded = localStorage.getItem('abu_asim_master_passcode');
+      return encoded ? atob(encoded) : null;
+    } catch { return null; }
+  };
+
+  const handleEnablePasscode = () => {
+    if (!pinNew || pinNew.length < 4) {
+      setSecError('Passcode kam se kam 4 digits ka hona chahiye!');
+      return;
+    }
+    if (pinNew !== pinConfirm) {
+      setSecError('Confirm Passcode match nahi kar raha!');
+      return;
+    }
+    try {
+      localStorage.setItem('abu_asim_master_passcode', btoa(pinNew));
+      setPasscodeActive(true);
+      resetSecurityFormState();
+      alert('🔒 Master Passcode enabled successfully! Ab jab bhi app open hogi, passcode maanga jayega.');
+    } catch {
+      setSecError('Error enabling passcode');
+    }
+  };
+
+  const handleChangePasscode = () => {
+    const correctPin = getStoredPin();
+    if (pinCurrent !== correctPin) {
+      setSecError('Purana Passcode galat hai!');
+      return;
+    }
+    if (!pinNew || pinNew.length < 4) {
+      setSecError('Naya Passcode kam se kam 4 digits ka hona chahiye!');
+      return;
+    }
+    if (pinNew !== pinConfirm) {
+      setSecError('Confirm Naya Passcode match nahi kar raha!');
+      return;
+    }
+    try {
+      localStorage.setItem('abu_asim_master_passcode', btoa(pinNew));
+      resetSecurityFormState();
+      alert('✅ Passcode successfully changed!');
+    } catch {
+      setSecError('Error changing passcode');
+    }
+  };
+
+  const handleDisablePasscode = () => {
+    const correctPin = getStoredPin();
+    if (pinCurrent !== correctPin) {
+      setSecError('Purana Passcode galat hai!');
+      return;
+    }
+    try {
+      localStorage.removeItem('abu_asim_master_passcode');
+      setPasscodeActive(false);
+      resetSecurityFormState();
+      alert('⚠️ Passcode security has been disabled. System unlocked for everyone.');
+    } catch {
+      setSecError('Error disabling passcode');
+    }
+  };
+
   return (
     <Layout>
       <div style={{ padding: '1rem', maxWidth: '1000px', margin: '0 auto' }}>
@@ -232,6 +313,192 @@ export default function Settings() {
                 <Save size={16} /> {isLoading ? 'Saving...' : 'Save Settings'}
               </button>
             </div>
+          </div>
+
+          {/* ── Passcode Lock Security Panel ── */}
+          <div className="glass-panel" style={{ padding: '1.2rem', marginTop: '1rem', border: passcodeActive ? '1px solid rgba(212,175,55,0.5)' : '1px solid var(--border-color)' }}>
+            <h3 style={{ margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}>
+              <ShieldCheck size={16} color={passcodeActive ? 'var(--primary)' : 'var(--text-muted)'} />
+              Master Passcode Security
+            </h3>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0 0 0.8rem 0', lineHeight: '1.3' }}>
+              Apne system ko secure karein. Active hone par app open karte hi passcode lock screen dikhegi.
+            </p>
+
+            {/* Status Indicator */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 0.8rem', borderRadius: '8px', backgroundColor: passcodeActive ? 'rgba(212,175,55,0.08)' : 'rgba(255,255,255,0.03)', border: passcodeActive ? '1px solid rgba(212,175,55,0.3)' : '1px solid var(--border-color)', marginBottom: '0.8rem' }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: passcodeActive ? 'var(--primary)' : '#6b7280', boxShadow: passcodeActive ? '0 0 8px var(--primary)' : 'none', flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.1rem' }}>Security Status</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: passcodeActive ? 'var(--primary)' : 'var(--text-main)' }}>
+                  {passcodeActive ? '🔒 Passcode Lock is ACTIVE' : '🔓 Unlocked (No Passcode Set)'}
+                </div>
+              </div>
+            </div>
+
+            {secError && (
+              <div style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: '600', marginBottom: '0.8rem', textAlign: 'left' }}>
+                ⚠️ {secError}
+              </div>
+            )}
+
+            {/* Action Buttons if form is closed */}
+            {!securityForm && (
+              <div style={{ display: 'flex', gap: '0.6rem' }}>
+                {!passcodeActive ? (
+                  <button
+                    onClick={() => { resetSecurityFormState(); setSecurityForm('enable'); }}
+                    className="btn-primary"
+                    style={{ flex: 1, padding: '0.6rem', justifyContent: 'center', fontSize: '0.8rem' }}
+                  >
+                    Enable Passcode Lock
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => { resetSecurityFormState(); setSecurityForm('change'); }}
+                      className="btn-primary"
+                      style={{ flex: 1, padding: '0.6rem', justifyContent: 'center', fontSize: '0.8rem' }}
+                    >
+                      Change Passcode
+                    </button>
+                    <button
+                      onClick={() => { resetSecurityFormState(); setSecurityForm('disable'); }}
+                      style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--danger)', backgroundColor: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.8rem' }}
+                    >
+                      Disable
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Security Forms */}
+            {securityForm === 'enable' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', backgroundColor: 'rgba(0,0,0,0.2)', padding: '0.8rem', borderRadius: '12px', border: '1px solid rgba(212,175,55,0.15)' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--primary)' }}>Naya Passcode Set Karein</div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Passcode (Sirf Numbers, min 4)</label>
+                  <input 
+                    type="password" 
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    maxLength={16}
+                    placeholder="••••"
+                    value={pinNew}
+                    onChange={e => setPinNew(e.target.value.replace(/\D/g, ''))}
+                    className="input-field w-full"
+                    style={{ padding: '0.5rem 0.8rem', fontSize: '0.85rem', textAlign: 'center', letterSpacing: '4px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Passcode Ki Tasdeeq (Confirm)</label>
+                  <input 
+                    type="password" 
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    maxLength={16}
+                    placeholder="••••"
+                    value={pinConfirm}
+                    onChange={e => setPinConfirm(e.target.value.replace(/\D/g, ''))}
+                    className="input-field w-full"
+                    style={{ padding: '0.5rem 0.8rem', fontSize: '0.85rem', textAlign: 'center', letterSpacing: '4px' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.4rem' }}>
+                  <button onClick={handleEnablePasscode} className="btn-primary" style={{ flex: 1, padding: '0.5rem', justifyContent: 'center', fontSize: '0.8rem' }}>
+                    Enable Lock
+                  </button>
+                  <button onClick={resetSecurityFormState} style={{ flex: 1, padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {securityForm === 'change' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', backgroundColor: 'rgba(0,0,0,0.2)', padding: '0.8rem', borderRadius: '12px', border: '1px solid rgba(212,175,55,0.15)' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--primary)' }}>Passcode Tabdeel (Change) Karein</div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Purana Passcode</label>
+                  <input 
+                    type="password" 
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    maxLength={16}
+                    placeholder="••••"
+                    value={pinCurrent}
+                    onChange={e => setPinCurrent(e.target.value.replace(/\D/g, ''))}
+                    className="input-field w-full"
+                    style={{ padding: '0.5rem 0.8rem', fontSize: '0.85rem', textAlign: 'center', letterSpacing: '4px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Naya Passcode</label>
+                  <input 
+                    type="password" 
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    maxLength={16}
+                    placeholder="••••"
+                    value={pinNew}
+                    onChange={e => setPinNew(e.target.value.replace(/\D/g, ''))}
+                    className="input-field w-full"
+                    style={{ padding: '0.5rem 0.8rem', fontSize: '0.85rem', textAlign: 'center', letterSpacing: '4px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Confirm Naya Passcode</label>
+                  <input 
+                    type="password" 
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    maxLength={16}
+                    placeholder="••••"
+                    value={pinConfirm}
+                    onChange={e => setPinConfirm(e.target.value.replace(/\D/g, ''))}
+                    className="input-field w-full"
+                    style={{ padding: '0.5rem 0.8rem', fontSize: '0.85rem', textAlign: 'center', letterSpacing: '4px' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.4rem' }}>
+                  <button onClick={handleChangePasscode} className="btn-primary" style={{ flex: 1, padding: '0.5rem', justifyContent: 'center', fontSize: '0.8rem' }}>
+                    Change Passcode
+                  </button>
+                  <button onClick={resetSecurityFormState} style={{ flex: 1, padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {securityForm === 'disable' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', backgroundColor: 'rgba(0,0,0,0.2)', padding: '0.8rem', borderRadius: '12px', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--danger)' }}>Security Lock Ko Khatam Karein</div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Purana Passcode Enter Karein</label>
+                  <input 
+                    type="password" 
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    maxLength={16}
+                    placeholder="••••"
+                    value={pinCurrent}
+                    onChange={e => setPinCurrent(e.target.value.replace(/\D/g, ''))}
+                    className="input-field w-full"
+                    style={{ padding: '0.5rem 0.8rem', fontSize: '0.85rem', textAlign: 'center', letterSpacing: '4px' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.4rem' }}>
+                  <button onClick={handleDisablePasscode} style={{ flex: 1, padding: '0.5rem', borderRadius: '8px', border: 'none', backgroundColor: 'var(--danger)', color: '#fff', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem' }}>
+                    Disable Security
+                  </button>
+                  <button onClick={resetSecurityFormState} style={{ flex: 1, padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

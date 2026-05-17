@@ -128,6 +128,7 @@ export default function Customers() {
         amount: amount,
         userId: user.uid,
         type: 'Wasooli',
+        method: 'Cash',
         createdAt: serverTimestamp()
       });
 
