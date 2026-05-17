@@ -315,7 +315,7 @@ export default function Dashboard() {
                 <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Cash in Hand</div>
               </div>
               <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#22c55e' }}>
-                PKR {(stats.totalCashSales - (stats.totalAllPurchases || 0) - stats.totalAllExpenses).toLocaleString()}
+                PKR {(stats.totalCashSales - stats.totalAllExpenses).toLocaleString()}
               </div>
             </div>
 

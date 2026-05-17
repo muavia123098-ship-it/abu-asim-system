@@ -79,6 +79,12 @@ export default function Sales() {
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
+
+    // Validate that a customer is selected or "Walk-in" is clicked
+    if (!selectedCustomer.id) {
+      return alert("⚠️ Please select a Customer from the dropdown or click the 'Walk-in' button first.");
+    }
+
     const user = auth.currentUser;
     if (!user) return;
 
@@ -214,7 +220,7 @@ export default function Sales() {
                 <button onClick={() => setSelectedCustomer({ name: 'Walk-in Customer', phone: 'Guest', id: 'guest' })} style={{ fontSize: '0.7rem', backgroundColor: 'var(--primary)', color: 'white', border: 'none', padding: '0.3rem 0.6rem', borderRadius: '5px', cursor: 'pointer' }}>Walk-in</button>
               </div>
               <div style={{ position: 'relative' }}>
-                <input className="input-field" style={{ width: '100%', padding: '0.5rem', marginBottom: '0.5rem' }} placeholder="Search Name" value={selectedCustomer.name} onChange={e => setSelectedCustomer({...selectedCustomer, name: e.target.value})} />
+                <input className="input-field" style={{ width: '100%', padding: '0.5rem', marginBottom: '0.5rem' }} placeholder="Search Name" value={selectedCustomer.name} onChange={e => setSelectedCustomer({ name: e.target.value, phone: '', id: '' })} />
                 {selectedCustomer.name && selectedCustomer.id !== 'guest' && !customers.find(c => c.name === selectedCustomer.name) && (
                   <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', zIndex: 10 }}>
                     {customers.filter(c => c.name.toLowerCase().includes(selectedCustomer.name.toLowerCase())).slice(0, 3).map(c => (
