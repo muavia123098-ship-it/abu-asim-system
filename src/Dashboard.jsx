@@ -37,6 +37,7 @@ export default function Dashboard() {
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [salesData, setSalesData] = useState([]);
   const [recentSales, setRecentSales] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [allSalesForFinancials, setAllSalesForFinancials] = useState([]);
   const [filteredSalesForFinancials, setFilteredSalesForFinancials] = useState([]);
