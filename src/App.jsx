@@ -15,11 +15,13 @@ import Settings from './Settings';
 import SplashScreen from './SplashScreen';
 import ErrorBoundary from './ErrorBoundary';
 import LockScreen from './LockScreen';
+import ActivationLock from './ActivationLock';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
   const [alertInfo, setAlertInfo] = useState({ show: false, message: '', onClose: null });
+  const [isActivated, setIsActivated] = useState(localStorage.getItem('abu_asim_system_activated') === 'true');
 
   useEffect(() => {
     const passcode = localStorage.getItem('abu_asim_master_passcode');
@@ -95,6 +97,10 @@ function App() {
       }
     `}</style>
   );
+
+  if (!isActivated) {
+    return <ActivationLock onActivate={() => setIsActivated(true)} />;
+  }
 
   return (
     <ErrorBoundary>

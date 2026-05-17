@@ -3,7 +3,7 @@ import Layout from './Layout';
 import { 
   Settings as SettingsIcon, Building, Image as ImageIcon, 
   Coins, FileText, Database, Download, Upload, 
-  Save, Trash2, ShieldCheck, RefreshCw, HardDrive, Link, Unlink, CheckCircle2
+  Save, Trash2, ShieldCheck, RefreshCw, HardDrive, Link, Unlink, CheckCircle2, Key
 } from 'lucide-react';
 import { db, auth, doc, getDoc, setDoc, updateDoc, collection, getDocs, writeBatch, query, where, connectDataFile, disconnectDataFile, getFileStatus } from './db';
 
@@ -271,6 +271,13 @@ export default function Settings() {
     }
   };
 
+  const handleDeactivateLicense = () => {
+    if (window.confirm("⚠️ Kya aap waqai is device se software license deactivate karna chahte hain? Deactivate karne par software lock ho jaega!")) {
+      localStorage.removeItem('abu_asim_system_activated');
+      window.location.reload();
+    }
+  };
+
   return (
     <Layout>
       <div style={{ padding: '1rem', maxWidth: '1000px', margin: '0 auto' }}>
@@ -499,6 +506,36 @@ export default function Settings() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* ── System Licensing & Device Authorization Panel ── */}
+          <div className="glass-panel" style={{ padding: '1.2rem', marginTop: '1rem', border: '1px solid rgba(212,175,55,0.5)' }}>
+            <h3 style={{ margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' }}>
+              <Key size={16} color="var(--primary)" />
+              System License & Security
+            </h3>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0 0 0.8rem 0', lineHeight: '1.3' }}>
+              Aap ki device verify ho chuki hai. Sirf is device se access hatane ke liye deactivate button dabein.
+            </p>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 0.8rem', borderRadius: '8px', backgroundColor: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.3)', marginBottom: '0.8rem' }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--primary)', boxShadow: '0 0 8px var(--primary)', flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.1rem' }}>Device License Status</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--primary)' }}>
+                  🟢 SYSTEM ACTIVATED & SECURE
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.6rem' }}>
+              <button
+                onClick={handleDeactivateLicense}
+                style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: 'none', backgroundColor: 'var(--danger)', color: '#fff', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+              >
+                Deactivate License on this Device
+              </button>
+            </div>
           </div>
         </div>
 
