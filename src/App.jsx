@@ -14,21 +14,12 @@ import Employees from './Employees';
 import Settings from './Settings';
 import SplashScreen from './SplashScreen';
 import ErrorBoundary from './ErrorBoundary';
-import LockScreen from './LockScreen';
 import ActivationLock from './ActivationLock';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
-  const [isLocked, setIsLocked] = useState(false);
   const [alertInfo, setAlertInfo] = useState({ show: false, message: '', onClose: null });
   const [isActivated, setIsActivated] = useState(localStorage.getItem('abu_asim_system_activated') === 'true');
-
-  useEffect(() => {
-    const passcode = localStorage.getItem('abu_asim_master_passcode');
-    if (passcode) {
-      setIsLocked(true);
-    }
-  }, []);
 
   useEffect(() => {
     const originalAlert = window.alert;
@@ -202,26 +193,22 @@ function App() {
       )}
 
       <div style={{ opacity: showSplash ? 0 : 1, visibility: showSplash ? 'hidden' : 'visible', transition: 'opacity 0.5s ease-in', height: '100vh', width: '100vw' }}>
-        {isLocked ? (
-          <LockScreen onUnlock={() => setIsLocked(false)} />
-        ) : (
-          <Router>
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/suppliers" element={<Suppliers />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/purchases" element={<Purchases />} />
-              <Route path="/sales" element={<Sales />} />
-              <Route path="/customers" element={<Customers />} />
-              <Route path="/expenses" element={<Expenses />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/employees" element={<Employees />} />
-              <Route path="/settings" element={<Settings />} />
-            </Routes>
-          </Router>
-        )}
+        <Router>
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/suppliers" element={<Suppliers />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/purchases" element={<Purchases />} />
+            <Route path="/sales" element={<Sales />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/expenses" element={<Expenses />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/employees" element={<Employees />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </Router>
       </div>
     </ErrorBoundary>
   );
