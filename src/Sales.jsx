@@ -113,13 +113,16 @@ export default function Sales() {
 
     for (const product of products) {
       let score = 0;
-      const pName = (product.name || '').toLowerCase();
-      const pBrand = (product.brand || '').toLowerCase();
-      const pVolume = String(product.volume || '').toLowerCase();
-      const pSku = (product.sku || '').toLowerCase();
+      const pName = (product.name || '').toLowerCase().trim();
+      const pBrand = (product.brand || '').toLowerCase().trim();
+      const pVolume = String(product.volume || '').toLowerCase().trim();
+      const pSku = (product.sku || '').toLowerCase().trim();
 
-      // Exact SKU match = instant win
-      if (pSku && (text === pSku || parts.includes(pSku))) {
+      const cleanText = text.replace(/[^a-z0-9]/g, '');
+      const cleanSku = pSku.replace(/[^a-z0-9]/g, '');
+
+      // Exact SKU match = instant win (robust with cleaned alphanumeric matching)
+      if (pSku && (text === pSku || parts.includes(pSku) || (cleanText && cleanText === cleanSku))) {
         bestMatch = product;
         bestScore = 100;
         break;
