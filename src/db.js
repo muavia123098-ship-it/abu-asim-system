@@ -200,7 +200,7 @@ export const initFileStorage = async () => {
 
     // Check permission silently (won't prompt user)
     let perm = await handle.queryPermission({ mode: 'readwrite' });
-    
+
     if (perm === 'prompt') {
       // Browser requires a user gesture (click) to show the prompt.
       // Wait for the user's first click anywhere on the page.
@@ -225,7 +225,7 @@ export const initFileStorage = async () => {
       // Load file data into localStorage
       await loadFileDataIntoLocalStorage();
       window.dispatchEvent(new CustomEvent('file-connected', { detail: { name: handle.name } }));
-      
+
       // If any local changes happened before this click, sync them to the file now
       writeToFile();
     }
@@ -260,7 +260,7 @@ export const auth = {
   currentUser: { uid: 'local-user', displayName: 'Local User', email: 'admin@abuasim.com' },
   onAuthStateChanged: (callback) => {
     callback({ uid: 'local-user', displayName: 'Local User', email: 'admin@abuasim.com' });
-    return () => {};
+    return () => { };
   },
   signOut: async () => Promise.resolve()
 };

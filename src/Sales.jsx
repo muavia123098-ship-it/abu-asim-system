@@ -3,10 +3,13 @@ import Layout from './Layout';
 import { 
   Search, ShoppingCart, Plus, Minus, Trash2, User, Phone, 
   CheckCircle, Printer, X, CreditCard, Banknote, Tag, 
-  ChevronRight, Download, Receipt, Wallet, Image as ImageIcon
+  ChevronRight, Download, Receipt, Wallet, Image as ImageIcon,
+  Wifi, WifiOff, ScanLine
 } from 'lucide-react';
 import { db, auth, collection, addDoc, onSnapshot, query, where, serverTimestamp, updateDoc, doc, deleteDoc, getDocs, runTransaction, getDoc } from './db';
 import { toBlob } from 'html-to-image';
+import { getFirebaseDb, getSessionId, generateSessionId } from './firebase';
+import { ref, onValue, set, onDisconnect, off } from 'firebase/database';
 
 export default function Sales() {
   const [products, setProducts] = useState([]);
@@ -25,6 +28,13 @@ export default function Sales() {
   
   const invoiceRef = useRef(null);
 
+  // ─── Scanner State ───
+  const [scannerEnabled, setScannerEnabled] = useState(false);
+  const [scannerStatus, setScannerStatus] = useState('offline'); // offline, connected, linked
+  const [sessionId, setSessionId] = useState('');
+  const [lastScannedProduct, setLastScannedProduct] = useState(null);
+  const lastBarcodeTimestamp = useRef(0);
+
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
@@ -35,6 +45,113 @@ export default function Sales() {
       setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
   }, []);
+
+  // ─── Scanner Firebase Listener ───
+  useEffect(() => {
+    if (!scannerEnabled) return;
+
+    const firebaseDb = getFirebaseDb();
+    if (!firebaseDb) {
+      setScannerStatus('offline');
+      return;
+    }
+
+    const sid = getSessionId();
+    setSessionId(sid);
+
+    // Mark desktop as active
+    const desktopRef = ref(firebaseDb, `sessions/${sid}/desktop_active`);
+    set(desktopRef, true);
+    onDisconnect(desktopRef).set(false);
+    setScannerStatus('connected');
+
+    // Listen for mobile heartbeat
+    const mobileRef = ref(firebaseDb, `sessions/${sid}/mobile_active`);
+    const mobileUnsub = onValue(mobileRef, (snap) => {
+      if (snap.val() === true) {
+        setScannerStatus('linked');
+      } else {
+        setScannerStatus('connected');
+      }
+    });
+
+    // ★ CORE: Listen for incoming barcodes
+    const barcodeRef = ref(firebaseDb, `sessions/${sid}/barcode`);
+    const timestampRef = ref(firebaseDb, `sessions/${sid}/barcode_timestamp`);
+
+    const barcodeUnsub = onValue(timestampRef, (snap) => {
+      const ts = snap.val();
+      if (!ts || ts <= lastBarcodeTimestamp.current) return;
+      lastBarcodeTimestamp.current = ts;
+
+      // Read the barcode value
+      onValue(barcodeRef, (bSnap) => {
+        const barcodeText = bSnap.val();
+        if (!barcodeText) return;
+        matchAndAddToCart(barcodeText);
+      }, { onlyOnce: true });
+    });
+
+    return () => {
+      set(desktopRef, false);
+      off(mobileRef);
+      off(timestampRef);
+      setScannerStatus('offline');
+    };
+  }, [scannerEnabled, products]);
+
+  // ─── Smart Product Matching (milliseconds) ───
+  const matchAndAddToCart = (barcodeText) => {
+    if (!barcodeText || products.length === 0) return;
+
+    const text = barcodeText.toLowerCase().trim();
+    // Try splitting by common delimiters: | , - _ /
+    const parts = text.split(/[|\-_\/,;]+/).map(p => p.trim()).filter(Boolean);
+
+    let bestMatch = null;
+    let bestScore = 0;
+
+    for (const product of products) {
+      let score = 0;
+      const pName = (product.name || '').toLowerCase();
+      const pBrand = (product.brand || '').toLowerCase();
+      const pVolume = String(product.volume || '').toLowerCase();
+      const pSku = (product.sku || '').toLowerCase();
+
+      // Exact SKU match = instant win
+      if (pSku && (text === pSku || parts.includes(pSku))) {
+        bestMatch = product;
+        bestScore = 100;
+        break;
+      }
+
+      // Check each part against product fields
+      for (const part of parts) {
+        if (pName.includes(part) || part.includes(pName)) score += 40;
+        if (pBrand && (pBrand.includes(part) || part.includes(pBrand))) score += 30;
+        if (pVolume && (part.includes(pVolume) || part === pVolume + 'ml')) score += 30;
+      }
+
+      // Also check full text contains
+      if (text.includes(pName)) score += 20;
+      if (pBrand && text.includes(pBrand)) score += 15;
+      if (pVolume && text.includes(pVolume)) score += 15;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = product;
+      }
+    }
+
+    if (bestMatch && bestScore >= 30) {
+      addToCart(bestMatch);
+      setLastScannedProduct({ name: bestMatch.name, time: Date.now() });
+      // Auto-clear notification after 2s
+      setTimeout(() => setLastScannedProduct(null), 2500);
+    } else {
+      alert(`⚠️ Barcode "${barcodeText}" se koi product match nahi hua. Product name, brand ya volume check karein.`);
+    }
+  };
 
   const isWalkIn = selectedCustomer.id === 'guest';
 
@@ -186,8 +303,61 @@ export default function Sales() {
         {/* UI remains same as previous version but with new handleCheckout */}
         <div style={{ flex: 1, padding: '2rem', overflowY: 'auto', borderRight: '1px solid var(--border-color)' }}>
           <div style={{ marginBottom: '2rem' }}>
-            <h1 style={{ margin: 0, fontSize: '1.8rem' }}>Create New Sale</h1>
-            <div style={{ marginTop: '1.5rem', position: 'relative' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h1 style={{ margin: 0, fontSize: '1.8rem' }}>Create New Sale</h1>
+              {/* Scanner Toggle */}
+              <button 
+                onClick={() => setScannerEnabled(!scannerEnabled)} 
+                style={{ 
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  padding: '0.5rem 1rem', borderRadius: '10px', border: 'none', cursor: 'pointer',
+                  backgroundColor: scannerEnabled ? 'rgba(34,197,94,0.15)' : 'var(--bg-surface)',
+                  color: scannerEnabled ? '#22c55e' : 'var(--text-muted)',
+                  fontWeight: '600', fontSize: '0.8rem', transition: 'all 0.2s'
+                }}
+              >
+                <ScanLine size={18} />
+                {scannerEnabled ? 'Scanner ON' : 'Scanner OFF'}
+              </button>
+            </div>
+
+            {/* Scanner Status Bar */}
+            {scannerEnabled && (
+              <div style={{ 
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '0.7rem 1rem', borderRadius: '10px', marginBottom: '1rem',
+                background: scannerStatus === 'linked' ? 'rgba(34,197,94,0.08)' : 'rgba(212,175,55,0.08)',
+                border: `1px solid ${scannerStatus === 'linked' ? 'rgba(34,197,94,0.3)' : 'rgba(212,175,55,0.3)'}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  {scannerStatus === 'linked' ? <Wifi size={16} color="#22c55e" /> : <WifiOff size={16} color="var(--primary)" />}
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: scannerStatus === 'linked' ? '#22c55e' : 'var(--primary)' }}>
+                    {scannerStatus === 'linked' ? '📱 Mobile Scanner Connected' : scannerStatus === 'connected' ? '⏳ Waiting for Mobile...' : '❌ Offline'}
+                  </span>
+                </div>
+                <div style={{ 
+                  padding: '0.3rem 0.8rem', borderRadius: '6px', 
+                  background: 'var(--bg-surface)', fontSize: '0.75rem', fontWeight: '700',
+                  color: 'var(--primary)', letterSpacing: '1px'
+                }}>
+                  {sessionId}
+                </div>
+              </div>
+            )}
+
+            {/* Scan Success Toast */}
+            {lastScannedProduct && (
+              <div style={{ 
+                padding: '0.6rem 1rem', borderRadius: '8px', marginBottom: '1rem',
+                background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)',
+                color: '#22c55e', fontSize: '0.8rem', fontWeight: '600',
+                animation: 'fadeIn 0.3s ease'
+              }}>
+                ✅ Scanned: {lastScannedProduct.name} — Added to Cart!
+              </div>
+            )}
+
+            <div style={{ position: 'relative' }}>
               <Search size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input type="text" placeholder="Search products..." className="input-field" style={{ width: '100%', paddingLeft: '3rem', borderRadius: '12px' }} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
