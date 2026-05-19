@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getDatabase, ref, onValue, set, onDisconnect, push } from 'firebase/database';
+import { getDatabase, ref, onValue, set, onDisconnect, push, off } from 'firebase/database';
 
 // Default public Firebase project configuration for instant out-of-the-box demo
 // Using a secure, isolated session-based path to prevent conflict between different shops.
@@ -85,4 +85,123 @@ export const generateSessionId = () => {
 // Retrieve current session ID
 export const getSessionId = () => {
   return localStorage.getItem('abu_asim_scanner_session_id') || generateSessionId();
+};
+
+// ─── GLOBAL SCANNER BACKGROUND SERVICE ───
+let activeSessionId = null;
+let desktopRef = null;
+let mobileRef = null;
+let timestampRef = null;
+let barcodeRef = null;
+
+let currentStatus = 'offline';
+let lastBarcodeTimestamp = Date.now(); // Start fresh from boot
+
+const updateStatus = (newStatus) => {
+  currentStatus = newStatus;
+  window.dispatchEvent(new CustomEvent('scanner-status-changed', { 
+    detail: { status: newStatus, sessionId: getSessionId() } 
+  }));
+};
+
+export const scannerService = {
+  isEnabled: () => {
+    return localStorage.getItem('abu_asim_scanner_enabled') === 'true';
+  },
+  
+  getStatus: () => currentStatus,
+  
+  getSessionId: () => getSessionId(),
+  
+  setEnabled: (enabled) => {
+    localStorage.setItem('abu_asim_scanner_enabled', enabled ? 'true' : 'false');
+    if (enabled) {
+      scannerService.connect();
+    } else {
+      scannerService.disconnect();
+    }
+  },
+  
+  connect: () => {
+    const db = getFirebaseDb();
+    if (!db) {
+      updateStatus('offline');
+      return;
+    }
+    
+    const sid = getSessionId();
+    if (activeSessionId === sid && currentStatus !== 'offline') return;
+    
+    // Disconnect any existing first
+    scannerService.disconnect();
+    
+    activeSessionId = sid;
+    updateStatus('connected');
+    
+    try {
+      // Mark desktop as active
+      desktopRef = ref(db, `sessions/${sid}/desktop_active`);
+      set(desktopRef, true);
+      onDisconnect(desktopRef).set(false);
+      
+      // Listen for mobile heartbeat
+      mobileRef = ref(db, `sessions/${sid}/mobile_active`);
+      onValue(mobileRef, (snap) => {
+        if (snap.val() === true) {
+          updateStatus('linked');
+        } else {
+          updateStatus('connected');
+        }
+      });
+      
+      // Listen for incoming barcodes
+      barcodeRef = ref(db, `sessions/${sid}/barcode`);
+      timestampRef = ref(db, `sessions/${sid}/barcode_timestamp`);
+      
+      onValue(timestampRef, (snap) => {
+        const ts = snap.val();
+        if (!ts || ts <= lastBarcodeTimestamp) return;
+        lastBarcodeTimestamp = ts;
+        
+        onValue(barcodeRef, (bSnap) => {
+          const barcodeText = bSnap.val();
+          if (!barcodeText) return;
+          
+          // Dispatch scanned barcode event to the whole app!
+          window.dispatchEvent(new CustomEvent('barcode-scanned', { 
+            detail: barcodeText 
+          }));
+        }, { onlyOnce: true });
+      });
+    } catch (e) {
+      console.error("Error setting up global scanner service:", e);
+      updateStatus('offline');
+    }
+  },
+  
+  disconnect: () => {
+    const db = getFirebaseDb();
+    const sid = activeSessionId;
+    
+    if (db && sid) {
+      try {
+        if (desktopRef) set(desktopRef, false);
+        if (mobileRef) off(mobileRef);
+        if (timestampRef) off(timestampRef);
+      } catch (e) {}
+    }
+    
+    desktopRef = null;
+    mobileRef = null;
+    timestampRef = null;
+    barcodeRef = null;
+    activeSessionId = null;
+    updateStatus('offline');
+  },
+  
+  init: () => {
+    if (scannerService.isEnabled()) {
+      scannerService.connect();
+    }
+  }
 };

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { db, auth, collection, addDoc, onSnapshot, query, where, serverTimestamp, updateDoc, doc, deleteDoc, getDocs, runTransaction, getDoc } from './db';
 import { toBlob } from 'html-to-image';
-import { getFirebaseDb, getSessionId, generateSessionId } from './firebase';
+import { getFirebaseDb, getSessionId, generateSessionId, scannerService } from './firebase';
 import { ref, onValue, set, onDisconnect, off } from 'firebase/database';
 
 export default function Sales() {
@@ -35,6 +35,38 @@ export default function Sales() {
   const [lastScannedProduct, setLastScannedProduct] = useState(null);
   const lastBarcodeTimestamp = useRef(0);
 
+  // ─── Scanner Global Listener Sync ───
+  useEffect(() => {
+    // Synchronize initial state
+    setScannerEnabled(scannerService.isEnabled());
+    setScannerStatus(scannerService.getStatus());
+    setSessionId(scannerService.getSessionId());
+
+    // Listen for global scanner status changes
+    const handleStatusChange = (e) => {
+      setScannerStatus(e.detail.status);
+      setSessionId(e.detail.sessionId);
+    };
+
+    window.addEventListener('scanner-status-changed', handleStatusChange);
+    return () => {
+      window.removeEventListener('scanner-status-changed', handleStatusChange);
+    };
+  }, []);
+
+  // ─── Barcode Scanned Event Listener ───
+  useEffect(() => {
+    const handleBarcodeScanned = (e) => {
+      const barcodeText = e.detail;
+      matchAndAddToCart(barcodeText);
+    };
+
+    window.addEventListener('barcode-scanned', handleBarcodeScanned);
+    return () => {
+      window.removeEventListener('barcode-scanned', handleBarcodeScanned);
+    };
+  }, [products]);
+
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
@@ -45,60 +77,6 @@ export default function Sales() {
       setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
   }, []);
-
-  // ─── Scanner Firebase Listener ───
-  useEffect(() => {
-    if (!scannerEnabled) return;
-
-    const firebaseDb = getFirebaseDb();
-    if (!firebaseDb) {
-      setScannerStatus('offline');
-      return;
-    }
-
-    const sid = getSessionId();
-    setSessionId(sid);
-
-    // Mark desktop as active
-    const desktopRef = ref(firebaseDb, `sessions/${sid}/desktop_active`);
-    set(desktopRef, true);
-    onDisconnect(desktopRef).set(false);
-    setScannerStatus('connected');
-
-    // Listen for mobile heartbeat
-    const mobileRef = ref(firebaseDb, `sessions/${sid}/mobile_active`);
-    const mobileUnsub = onValue(mobileRef, (snap) => {
-      if (snap.val() === true) {
-        setScannerStatus('linked');
-      } else {
-        setScannerStatus('connected');
-      }
-    });
-
-    // ★ CORE: Listen for incoming barcodes
-    const barcodeRef = ref(firebaseDb, `sessions/${sid}/barcode`);
-    const timestampRef = ref(firebaseDb, `sessions/${sid}/barcode_timestamp`);
-
-    const barcodeUnsub = onValue(timestampRef, (snap) => {
-      const ts = snap.val();
-      if (!ts || ts <= lastBarcodeTimestamp.current) return;
-      lastBarcodeTimestamp.current = ts;
-
-      // Read the barcode value
-      onValue(barcodeRef, (bSnap) => {
-        const barcodeText = bSnap.val();
-        if (!barcodeText) return;
-        matchAndAddToCart(barcodeText);
-      }, { onlyOnce: true });
-    });
-
-    return () => {
-      set(desktopRef, false);
-      off(mobileRef);
-      off(timestampRef);
-      setScannerStatus('offline');
-    };
-  }, [scannerEnabled, products]);
 
   // ─── Smart Product Matching (milliseconds) ───
   const matchAndAddToCart = (barcodeText) => {
@@ -310,7 +288,11 @@ export default function Sales() {
               <h1 style={{ margin: 0, fontSize: '1.8rem' }}>Create New Sale</h1>
               {/* Scanner Toggle */}
               <button 
-                onClick={() => setScannerEnabled(!scannerEnabled)} 
+                onClick={() => {
+                  const newEnabled = !scannerEnabled;
+                  setScannerEnabled(newEnabled);
+                  scannerService.setEnabled(newEnabled);
+                }} 
                 style={{ 
                   display: 'flex', alignItems: 'center', gap: '0.5rem',
                   padding: '0.5rem 1rem', borderRadius: '10px', border: 'none', cursor: 'pointer',
