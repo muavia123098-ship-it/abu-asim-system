@@ -23,6 +23,7 @@ export default function Reports() {
   const [expenses, setExpenses] = useState([]);
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [filteredData, setFilteredData] = useState({ 
     sales: 0, purchases: 0, expenses: 0, profit: 0, 
     orders: 0, productsSold: 0, cashSales: 0, creditSales: 0,
@@ -31,7 +32,7 @@ export default function Reports() {
   const [chartData, setChartData] = useState([]);
   const [showSlip, setShowSlip] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
-  const [filteredLists, setFilteredLists] = useState({ sales: [], expenses: [] });
+  const [filteredLists, setFilteredLists] = useState({ sales: [], expenses: [], payments: [] });
   
   const slipRef = useRef(null);
 
@@ -62,18 +63,23 @@ export default function Reports() {
       setCustomers(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
     });
 
+    const unsubPayments = onSnapshot(query(collection(db, 'payments'), where('userId', '==', user.uid)), (snapshot) => {
+      setPayments(snapshot.docs.map(d => ({ ...d.data(), date: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : new Date() })));
+    });
+
     return () => {
       unsubSales();
       unsubPurchases();
       unsubExpenses();
       unsubProducts();
       unsubCustomers();
+      unsubPayments();
     };
   }, []);
 
   useEffect(() => {
     calculateStats();
-  }, [period, selectedDate, selectedMonth, selectedYear, sales, purchases, expenses]);
+  }, [period, selectedDate, selectedMonth, selectedYear, sales, purchases, expenses, payments]);
 
   const calculateStats = () => {
     let startDate, endDate;
@@ -99,33 +105,20 @@ export default function Reports() {
       if (period === 'Daily' && e.type === 'monthly') return false;
       return true;
     });
+    const fPayments = payments.filter(p => p.date >= startDate && p.date <= endDate);
 
     const totalSales = fSales.reduce((sum, s) => sum + (s.total || 0), 0);
-    const cashSales = fSales.filter(s => s.paymentMethod === 'Cash').reduce((sum, s) => sum + (s.total || 0), 0);
     const totalPurchases = fPurchases.reduce((sum, p) => sum + (p.totalCost || 0), 0);
     const totalExpenses = fExpenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
     
-    // Calculate stock-adjusted profit
-    const totalStockValue = products.reduce((sum, p) => {
-      const qty = parseFloat(p.stock) || 0;
-      const cost = parseFloat(p.costPrice) || 0;
-      return sum + (qty > 0 ? qty * cost : 0);
-    }, 0);
-
-    const totalAllSalesProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0);
-    const totalAllExpenses = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-    const totalCashSales = sales.filter(s => s.paymentMethod === 'Cash').reduce((sum, s) => sum + s.total, 0);
-
-    const globalCashInHand = totalCashSales - totalAllExpenses - totalStockValue;
-    const overallNetProfit = totalAllSalesProfit - totalAllExpenses;
+    // Calculate period payments
+    const cashSales = fPayments.filter(p => p.method === 'Cash').reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+    const bankSales = fPayments.filter(p => p.method === 'Bank').reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+    const totalPayments = fPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+    const creditSales = Math.max(0, totalSales - totalPayments);
 
     const periodSalesProfit = fSales.reduce((sum, s) => sum + (s.profit || 0), 0);
-    let profit = periodSalesProfit - totalExpenses;
-
-    if (globalCashInHand < overallNetProfit) {
-      const diff = overallNetProfit - globalCashInHand;
-      profit = profit - diff;
-    }
+    const profit = periodSalesProfit - totalExpenses;
 
     const orders = fSales.length;
     const totalItems = fSales.reduce((sum, s) => sum + (s.items?.reduce((iq, item) => iq + (item.quantity || 0), 0) || 0), 0);
@@ -134,9 +127,9 @@ export default function Reports() {
     setFilteredData({ 
       sales: totalSales, purchases: totalPurchases, expenses: totalExpenses, profit, 
       orders, productsSold: fSales.reduce((sum, s) => sum + (s.items?.length || 0), 0),
-      cashSales, creditSales: totalSales - cashSales, avgOrder, totalItems
+      cashSales, creditSales, avgOrder, totalItems
     });
-    setFilteredLists({ sales: fSales, expenses: fExpenses });
+    setFilteredLists({ sales: fSales, expenses: fExpenses, payments: fPayments });
 
     // Chart Data logic
     const data = [];
@@ -177,13 +170,14 @@ export default function Reports() {
   };
 
   const renderSlipDetails = () => {
-    const { sales, expenses } = filteredLists;
+    const { sales, expenses, payments: fPaymentsList } = filteredLists;
+    const fPayments = fPaymentsList || [];
 
     const onlineSales = sales.filter(s => s.saleType === 'Online');
     const physicalSales = sales.filter(s => s.saleType !== 'Online');
 
-    const cashSalesAmount = sales.filter(s => s.paymentMethod === 'Cash').reduce((sum, s) => sum + s.total, 0);
-    const bankSalesAmount = sales.filter(s => s.paymentMethod !== 'Cash').reduce((sum, s) => sum + s.total, 0);
+    const cashSalesAmount = fPayments.filter(p => p.method === 'Cash').reduce((sum, p) => sum + (p.amount || 0), 0);
+    const bankSalesAmount = fPayments.filter(p => p.method === 'Bank').reduce((sum, p) => sum + (p.amount || 0), 0);
 
     let topProductsByCategory = [];
     let vipDebts = [];

@@ -17,6 +17,10 @@ export default function Purchases() {
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [cartItems, setCartItems] = useState([]);
+  const [amountPaid, setAmountPaid] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('Cash');
+const [billPurchase, setBillPurchase] = useState(null);
+const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   
   // Search/Suggest State
   const [supplierSearch, setSupplierSearch] = useState('');
@@ -123,10 +127,27 @@ export default function Purchases() {
         });
       }
 
-      // 2. Update Supplier Balance
+      // 2. Handle Payment & Dues
+      const paid = parseFloat(amountPaid) || 0;
+      const dues = Math.max(0, totalPurchaseAmount - paid);
+
+      if (paid > 0) {
+        const paymentRef = doc(collection(db, 'payments'));
+        batch.set(paymentRef, {
+          userId: user.uid,
+          supplierId: selectedSupplier.id,
+          supplierName: selectedSupplier.name,
+          amount: paid,
+          type: 'Adaigi', // Supplier Payment
+          method: paymentMethod,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      // Update Supplier Balance (only by unpaid amount)
       const supplierRef = doc(db, 'suppliers', selectedSupplier.id);
       batch.update(supplierRef, {
-        balance: increment(totalPurchaseAmount)
+        balance: increment(dues)
       });
 
       await batch.commit();
@@ -149,6 +170,8 @@ export default function Purchases() {
     setSelectedProduct(null);
     setProductSearch('');
     setCurrentItem({ quantity: '', costPrice: '' });
+    setAmountPaid('');
+    setPaymentMethod('Cash');
   };
 
   const filteredSuppliers = suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()));
@@ -200,6 +223,7 @@ export default function Purchases() {
                 <th style={{ padding: '1rem' }}>QUANTITY</th>
                 <th style={{ padding: '1rem' }}>COST</th>
                 <th style={{ padding: '1rem' }}>TOTAL</th>
+<th style={{ padding: '1rem' }}>BILL</th>
               </tr>
             </thead>
             <tbody>
@@ -211,6 +235,9 @@ export default function Purchases() {
                   <td style={{ padding: '1.2rem 1rem' }}><span style={{ backgroundColor: 'var(--bg-main)', padding: '0.3rem 0.6rem', borderRadius: '6px' }}>+{p.quantity}</span></td>
                   <td style={{ padding: '1.2rem 1rem' }}>PKR {p.costPrice}</td>
                   <td style={{ padding: '1.2rem 1rem', fontWeight: 'bold', color: 'var(--primary)' }}>PKR {p.totalCost}</td>
+<td style={{ padding: '1.2rem 1rem' }}>
+  <button className="btn-primary" onClick={() => { setBillPurchase(p); setIsBillModalOpen(true); }}>Bill</button>
+</td>
                 </tr>
               ))}
             </tbody>
@@ -354,6 +381,20 @@ export default function Purchases() {
                   </div>
 
                   <div style={{ backgroundColor: 'var(--bg-main)', padding: '1.5rem', borderRadius: '20px', marginTop: 'auto' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Payment Method</label>
+                        <div style={{ display: 'flex', gap: '0.3rem', backgroundColor: 'var(--bg-surface)', padding: '0.2rem', borderRadius: '8px' }}>
+                          {['Cash', 'Bank'].map(m => (
+                            <button key={m} onClick={() => setPaymentMethod(m)} style={{ flex: 1, padding: '0.4rem', fontSize: '0.7rem', border: 'none', borderRadius: '6px', cursor: 'pointer', backgroundColor: paymentMethod === m ? 'var(--primary)' : 'transparent', color: paymentMethod === m ? 'white' : 'var(--text-muted)' }}>{m}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Amount Paid</label>
+                        <input type="number" className="input-field w-full" value={amountPaid} onChange={e => setAmountPaid(e.target.value)} placeholder="0" />
+                      </div>
+                    </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                       <span style={{ color: 'var(--text-muted)' }}>Total Payable:</span>
                       <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--primary)' }}>PKR {cartItems.reduce((s, i) => s + i.total, 0).toLocaleString()}</span>
@@ -372,6 +413,26 @@ export default function Purchases() {
           </div>
         )}
       </div>
+{isBillModalOpen && billPurchase && (
+  <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '2rem' }}>
+    <div className="glass-panel" style={{ width: '500px', maxWidth: '100%', backgroundColor: 'var(--bg-main)', padding: '2rem', borderRadius: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ margin: 0 }}>Purchase Bill</h2>
+        <X onClick={() => setIsBillModalOpen(false)} style={{ cursor: 'pointer' }} />
+      </div>
+      <div style={{ marginTop: '1rem' }}>
+        <p><strong>Supplier:</strong> {billPurchase.supplierName}</p>
+        <p><strong>Product:</strong> {billPurchase.productName}</p>
+        <p><strong>Quantity:</strong> {billPurchase.quantity}</p>
+        <p><strong>Unit Cost:</strong> PKR {billPurchase.costPrice}</p>
+        <p><strong>Total:</strong> PKR {billPurchase.totalCost}</p>
+        <p><strong>Amount Paid:</strong> PKR {billPurchase.amountPaid || 0}</p>
+        <p><strong>Due:</strong> PKR {Math.max(0, billPurchase.totalCost - (billPurchase.amountPaid || 0))}</p>
+      </div>
+      <button className="btn-primary" style={{ marginTop: '1rem', width: '100%' }} onClick={() => window.print()}>Print</button>
+    </div>
+  </div>
+)}
     </Layout>
   );
 }

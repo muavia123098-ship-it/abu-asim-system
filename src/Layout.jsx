@@ -9,7 +9,6 @@ import { auth } from './db';
 
 
 export default function Layout({ children }) {
-  const [theme, setTheme] = useState('gold');
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = auth.currentUser;
@@ -38,11 +37,6 @@ export default function Layout({ children }) {
       setShowInstallBtn(false);
     }
   };
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', 'gold');
-    localStorage.setItem('theme', 'gold');
-  }, []);
 
   return (
     <div className="flex h-screen w-full" style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-main)', fontSize: '0.85rem' }}>
@@ -80,7 +74,7 @@ export default function Layout({ children }) {
           <NavItem icon={<Box size={18} />} label="Products" active={location.pathname === '/products'} onClick={() => navigate('/products')} />
           <NavItem icon={<ClipboardList size={18} />} label="Inventory" active={location.pathname === '/inventory'} onClick={() => navigate('/inventory')} />
           <NavItem icon={<TrendingUp size={18} />} label="Sales" active={location.pathname === '/sales'} onClick={() => navigate('/sales')} />
-          <NavItem icon={<Users size={18} />} label="Customers" active={location.pathname === '/customers'} onClick={() => navigate('/customers')} />
+          <NavItem icon={<Users size={18} />} label="Credit Customers" active={location.pathname === '/customers'} onClick={() => navigate('/customers')} />
           <NavItem icon={<ShoppingBag size={18} />} label="Purchases" active={location.pathname === '/purchases'} onClick={() => navigate('/purchases')} />
           <NavItem icon={<FileText size={18} />} label="Expenses" active={location.pathname === '/expenses'} onClick={() => navigate('/expenses')} />
           <NavItem icon={<Activity size={18} />} label="Reports" active={location.pathname === '/reports'} onClick={() => navigate('/reports')} />

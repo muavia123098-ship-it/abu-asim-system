@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Layout from './Layout';
 import { 
-  Users, UserPlus, Search, Phone, History, Wallet, X, 
+  Users, UserPlus, Search, Phone, History, Wallet, X, Trash2,
   CheckCircle2, AlertTriangle, Receipt, ArrowUpRight, ArrowDownRight,
   Loader2
 } from 'lucide-react';
-import { db, auth, collection, addDoc, onSnapshot, query, where, serverTimestamp, updateDoc, doc, getDocs, orderBy } from './db';
+import { db, auth, collection, addDoc, onSnapshot, query, where, serverTimestamp, updateDoc, doc, getDocs, orderBy, deleteDoc } from './db';
 
 export default function Customers() {
   const isMounted = useRef(true);
@@ -21,6 +21,7 @@ export default function Customers() {
   const [stats, setStats] = useState({ totalSpent: 0, totalPaid: 0, currentDues: 0 });
   const [formData, setFormData] = useState({ name: '', phone: '', address: '' });
   const [receiveAmount, setReceiveAmount] = useState('');
+  const [customerToDelete, setCustomerToDelete] = useState(null);
 
   useEffect(() => {
     isMounted.current = true;
@@ -145,6 +146,27 @@ export default function Customers() {
     }
   };
 
+  const handleDeleteCustomer = (id) => {
+    setCustomerToDelete(id);
+  };
+
+  const confirmDeleteCustomer = async () => {
+    if (!customerToDelete) return;
+    try {
+      setIsActionLoading(true);
+      await deleteDoc(doc(db, 'customers', customerToDelete));
+      if (isMounted.current) {
+        setSelectedCustomer(null);
+        setCustomerToDelete(null);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete customer.");
+    } finally {
+      if (isMounted.current) setIsActionLoading(false);
+    }
+  };
+
   if (isLoading) {
     return <Layout><div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a0a0a' }}><Loader2 className="animate-spin" size={48} color="#d4af37" /></div></Layout>;
   }
@@ -154,8 +176,8 @@ export default function Customers() {
       <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
         <div style={{ flex: 1, padding: '2rem', overflowY: 'auto', borderRight: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-            <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '800' }}>VIP Ledger</h1>
-            <button className="btn-primary" onClick={() => setIsModalOpen(true)}><UserPlus size={20} /> New VIP</button>
+            <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '800' }}>Credit Customers</h1>
+            <button className="btn-primary" onClick={() => setIsModalOpen(true)}><UserPlus size={20} /> New Customer</button>
           </div>
           
           <div style={{ position: 'relative', marginBottom: '2rem' }}>
@@ -181,9 +203,12 @@ export default function Customers() {
           
           {selectedCustomer ? (
             <div>
-              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{ position: 'relative', textAlign: 'center', marginBottom: '2rem' }}>
                 <h2 style={{ margin: 0 }}>{selectedCustomer?.name}</h2>
                 <p style={{ color: 'var(--text-muted)' }}>{selectedCustomer?.phone}</p>
+                <button onClick={() => handleDeleteCustomer(selectedCustomer.id)} style={{ position: 'absolute', right: 0, top: 0, background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0.2rem' }} title="Delete Customer">
+                  <Trash2 size={20} />
+                </button>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
@@ -228,7 +253,7 @@ export default function Customers() {
               </div>
             </div>
           ) : (
-            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Select a VIP customer.</div>
+            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Select a credit customer.</div>
           )}
         </div>
 
@@ -237,12 +262,12 @@ export default function Customers() {
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <div className="glass-panel" style={{ width: '400px', padding: '2.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                <h2 style={{ margin: 0 }}>New VIP Customer</h2>
+                <h2 style={{ margin: 0 }}>New Credit Customer</h2>
                 <X onClick={() => setIsModalOpen(false)} style={{ cursor: 'pointer', color: 'var(--text-muted)' }} />
               </div>
               <form onSubmit={handleAddCustomer} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>VIP Name</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Customer Name</label>
                   <input required className="input-field w-full" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Ali Ahmed" />
                 </div>
                 <div>
@@ -254,7 +279,7 @@ export default function Customers() {
                   <input className="input-field w-full" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="City, Area" />
                 </div>
                 <button type="submit" disabled={isActionLoading} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '1rem', marginTop: '1rem' }}>
-                  {isActionLoading ? 'Saving...' : 'Add VIP'}
+                  {isActionLoading ? 'Saving...' : 'Add Customer'}
                 </button>
               </form>
             </div>
@@ -282,6 +307,33 @@ export default function Customers() {
                   {isActionLoading ? 'Recording...' : 'Receive & Update'}
                 </button>
               </form>
+            </div>
+          </div>
+        )}
+        {customerToDelete && (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div className="glass-panel" style={{ width: '400px', padding: '2.5rem', textAlign: 'center' }}>
+              <AlertTriangle size={48} color="var(--danger)" style={{ margin: '0 auto 1rem auto' }} />
+              <h2 style={{ margin: '0 0 1rem 0' }}>Delete Customer?</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem' }}>
+                Are you sure you want to delete this customer? This action cannot be undone, but their past sales history will remain.
+              </p>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button 
+                  onClick={() => setCustomerToDelete(null)} 
+                  disabled={isActionLoading}
+                  style={{ flex: 1, padding: '1rem', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '12px', color: 'var(--text-main)', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmDeleteCustomer} 
+                  disabled={isActionLoading}
+                  style={{ flex: 1, padding: '1rem', backgroundColor: 'var(--danger)', border: 'none', borderRadius: '12px', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  {isActionLoading ? 'Deleting...' : 'Yes, Delete'}
+                </button>
+              </div>
             </div>
           </div>
         )}

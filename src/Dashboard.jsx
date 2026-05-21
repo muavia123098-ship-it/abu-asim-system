@@ -18,6 +18,10 @@ export default function Dashboard() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const [stats, setStats] = useState({
+    // existing fields ...
+    totalSupplierCashPayments: 0,
+    totalSupplierBankPayments: 0,
+    totalSupplierPayments: 0,
     totalSales: 0,
     grossProfit: 0,
     totalExpenses: 0,
@@ -29,6 +33,9 @@ export default function Dashboard() {
     totalAllPurchases: 0,
     totalCashSales: 0,
     totalCashSalesForPeriod: 0,
+    totalBankSalesForPeriod: 0,
+    totalPaymentsForPeriod: 0,
+    totalAllBankSales: 0,
     totalAllExpenses: 0,
     totalDue: 0,
     totalAllSalesProfit: 0,
@@ -247,18 +254,34 @@ export default function Dashboard() {
       setStats(prev => ({ ...prev, totalPurchases: totalPurch, totalAllPurchases: totalAllPurch }));
     });
 
-    // PERIOD CASH SALES & DUE AMOUNT
-    const unsubPaymentsForPeriod = onSnapshot(query(collection(db, 'payments'), where('userId', '==', user.uid), where('method', '==', 'Cash')), (snapshot) => {
+    // PERIOD PAYMENTS & DUE AMOUNT
+    const unsubPaymentsForPeriod = onSnapshot(query(collection(db, 'payments'), where('userId', '==', user.uid)), (snapshot) => {
       const allPayments = snapshot.docs.map(doc => ({ ...doc.data(), date: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date() }));
       const filteredPayments = allPayments.filter(p => p.date >= startDate && p.date <= endDate);
       
-      const totalCashForPeriod = filteredPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-      const totalAllCashSales = allPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      const totalCashForPeriod = filteredPayments.filter(p => p.method === 'Cash').reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      const totalBankForPeriod = filteredPayments.filter(p => p.method === 'Bank').reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      const totalPaymentsForPeriod = filteredPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      
+      const totalAllCashSales = allPayments.filter(p => p.method === 'Cash').reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      const totalAllBankSales = allPayments.filter(p => p.method === 'Bank').reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      
+      // Compute supplier payments totals
+      const supplierPayments = allPayments.filter(p => p.type === 'Adaigi');
+      const totalSupplierCash = supplierPayments.filter(p => p.method === 'Cash').reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      const totalSupplierBank = supplierPayments.filter(p => p.method === 'Bank').reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      const totalSupplierPayments = totalSupplierCash + totalSupplierBank;
       
       setStats(prev => ({ 
         ...prev, 
         totalCashSalesForPeriod: totalCashForPeriod, 
-        totalCashSales: totalAllCashSales 
+        totalBankSalesForPeriod: totalBankForPeriod,
+        totalPaymentsForPeriod: totalPaymentsForPeriod,
+        totalCashSales: totalAllCashSales,
+        totalAllBankSales: totalAllBankSales,
+        totalSupplierCashPayments: totalSupplierCash,
+        totalSupplierBankPayments: totalSupplierBank,
+        totalSupplierPayments: totalSupplierPayments
       }));
     });
 
@@ -275,40 +298,22 @@ export default function Dashboard() {
   }, [period, selectedDate, selectedMonth, selectedYear]);
 
   const getFinancials = () => {
-    // 1. Calculate average profit margin of all VIP sales
-    const vipSales = allSalesForFinancials.filter(s => s.customerId && s.customerId !== 'guest');
-    const totalVipRevenue = vipSales.reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
-    const totalVipProfit = vipSales.reduce((sum, s) => sum + (parseFloat(s.profit) || 0), 0);
-    const avgVipMargin = totalVipRevenue > 0 ? (totalVipProfit / totalVipRevenue) : 0;
-
-    // Unrealized profit in overall and period dues
-    const overallUnrealizedProfit = totalAllDues * avgVipMargin;
-
-    // Calculate period specific unpaid amount at checkout
-    const periodVipSales = filteredSalesForFinancials.filter(s => s.customerId && s.customerId !== 'guest');
-    const periodUnrealizedProfit = periodVipSales.reduce((sum, s) => {
-      const unpaidAtCheckout = (parseFloat(s.total) || 0) - (parseFloat(s.amountPaid) || 0);
-      return sum + Math.max(0, unpaidAtCheckout * (avgVipMargin || 0.3));
-    }, 0);
-
-    // 2. Calculate Global Cash in Hand
+    // 1. Calculate Global Cash in Hand (Physical Cash)
     // globalCashInHand = Total Cash Received - Total Expenses - (Total Purchases - First Purchase Cost)
-    const totalCashPaidForPurchases = Math.max(0, stats.totalAllPurchases - (firstPurchaseCost || 0));
+    // Cash paid to suppliers (physical cash)
+    const totalCashPaidForPurchases = stats.totalSupplierCashPayments || 0;
     const globalCashInHand = stats.totalCashSales - stats.totalAllExpenses - totalCashPaidForPurchases;
 
-    // 3. Calculate Overall Net Profit (Realized on Cash-Basis)
-    const overallNetProfit = (stats.totalAllSalesProfit - overallUnrealizedProfit) - stats.totalAllExpenses;
+    // Bank cash paid to suppliers (online)
+    const totalBankPaidForPurchases = stats.totalSupplierBankPayments || 0;
+    const globalBankCash = (stats.totalAllBankSales || 0) - totalBankPaidForPurchases;
 
-    // 4. Calculate Period Net Profit (Realized on Cash-Basis)
-    let periodNetProfit = (stats.totalPeriodSalesProfit - periodUnrealizedProfit) - stats.totalExpenses;
-
-    // Apply the cash constraint: profit cannot exceed cash in hand (unless cash in hand is negative, then pin to 0 or same)
-    if (periodNetProfit > globalCashInHand && globalCashInHand >= 0) {
-      periodNetProfit = globalCashInHand;
-    }
+    // 3. Calculate Period Net Profit
+    const periodNetProfit = stats.totalPeriodSalesProfit - stats.totalExpenses;
 
     return {
       cashInHand: globalCashInHand,
+      bankCash: globalBankCash,
       netProfit: periodNetProfit
     };
   };
@@ -431,32 +436,44 @@ export default function Dashboard() {
 
           <div style={{ gridColumn: 'span 5', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div className="glass-panel" style={{ 
-              padding: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-              borderLeft: '5px solid #22c55e', backgroundColor: 'rgba(34, 197, 94, 0.05)' 
+              padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.8rem',
+              borderLeft: '5px solid #22c55e', backgroundColor: 'rgba(34, 197, 94, 0.03)' 
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                <Wallet size={20} color="#22c55e" />
-                <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Cash in Hand</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                  <Wallet size={20} color="#22c55e" />
+                  <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Cash & Bank</div>
+                </div>
+                <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#22c55e' }}>
+                  PKR {(getFinancials().cashInHand + getFinancials().bankCash).toLocaleString()}
+                </div>
               </div>
-              <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#22c55e' }}>
-                PKR {getFinancials().cashInHand.toLocaleString()}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px dashed var(--border-color)', paddingTop: '0.6rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  <span>Physical Cash (Galla):</span>
+                  <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>PKR {getFinancials().cashInHand.toLocaleString()}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  <span>Bank Cash (Online):</span>
+                  <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>PKR {getFinancials().bankCash.toLocaleString()}</span>
+                </div>
               </div>
             </div>
 
             <div className="glass-panel" style={{ padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderLeft: '5px solid #f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.05)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
                 <AlertCircle size={20} color="#f59e0b" />
-                <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Due Amount</div>
+                <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Due Amount (Purchases)</div>
               </div>
               <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#f59e0b' }}>
-                PKR {(stats.totalSales - stats.totalCashSalesForPeriod).toLocaleString()}
+                PKR {(stats.totalAllPurchases - stats.totalSupplierPayments).toLocaleString()}
               </div>
             </div>
 
             <div className="glass-panel" style={{ padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderLeft: '5px solid var(--primary)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
                 <Users size={20} color="var(--primary)" />
-                <div style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>VIP Customers</div>
+                <div style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>Credit Customers</div>
               </div>
               <div style={{ fontSize: '1.2rem', fontWeight: '800' }}>{stats.totalCustomers}</div>
             </div>
@@ -466,7 +483,7 @@ export default function Dashboard() {
               <div style={{ fontSize: '2.5rem', fontWeight: '900', margin: '0.5rem 0' }}>
                 PKR {getFinancials().netProfit.toLocaleString()}
               </div>
-              <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Sales Profit - Expenses (Adjusted for Stock)</p>
+              <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Sales Profit - Expenses</p>
             </div>
           </div>
 

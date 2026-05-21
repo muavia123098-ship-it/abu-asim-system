@@ -1,0 +1,26 @@
+{
+  "rules": {
+    "sessions": {
+      "$session_id": {
+        // Only allow reading/writing to a specific session if the client knows the exact Session ID.
+        // E.g. "ASIM-4376". It is impossible to list all sessions from outside.
+        ".read": "true",
+        ".write": "true",
+        
+        // Enforce strict structure validations to prevent any hacker from injecting malicious data
+        "barcode": {
+          ".validate": "newData.isString() && newData.val().length <= 50"
+        },
+        "barcode_timestamp": {
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        },
+        "desktop_active": {
+          ".validate": "newData.isBoolean()"
+        },
+        "mobile_active": {
+          ".validate": "newData.isBoolean()"
+        }
+      }
+    }
+  }
+}

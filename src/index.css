@@ -1,62 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  /* Bento Box Theme */
-  --primary: #9ce2a6; /* Pastel green */
-  --primary-hover: #86c490;
-  --primary-grad: linear-gradient(135deg, #9ce2a6 0%, #7dbd87 100%);
-  --primary-glow: rgba(156, 226, 166, 0.25);
-  --primary-text: #1a1a1a;
-  --bg-main: #e0e5dd; /* Soft sage/grey background */
-  --bg-surface: #ffffff;
-  --text-main: #1a1a1a;
-  --text-muted: #8b929c;
-  --border-color: #f1f3f1;
-  --success: #10b981;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --info: #bda6ff; /* Soft purple */
-  --pink: #ffb3c6;
-  --chart-bg: #ffffff;
-  
-  /* Sidebar */
-  --sidebar-bg: #e0e5dd;
-  --sidebar-text: #1a1a1a;
-  --sidebar-text-muted: #8b929c;
-  --sidebar-border: transparent;
-  --sidebar-active-bg: linear-gradient(135deg, rgba(156, 226, 166, 0.15) 0%, rgba(156, 226, 166, 0.03) 100%);
-  --sidebar-active-border: rgba(156, 226, 166, 0.25);
-  --sidebar-active-glow: rgba(156, 226, 166, 0.05);
-  
-  --card-radius: 32px;
-}
-
-[data-theme="dark"] {
-  /* Dark Theme */
-  --primary: #818cf8;
-  --primary-hover: #6366f1;
-  --primary-grad: linear-gradient(135deg, #818cf8 0%, #5b62e4 100%);
-  --primary-glow: rgba(129, 140, 248, 0.35);
-  --primary-text: #ffffff;
-  --bg-main: #0f172a;
-  --bg-surface: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --border-color: #334155;
-  --chart-bg: #0f172a;
-  
-  /* Sidebar */
-  --sidebar-bg: #1e293b;
-  --sidebar-text: #f8fafc;
-  --sidebar-text-muted: #94a3b8;
-  --sidebar-border: #334155;
-  --sidebar-active-bg: linear-gradient(135deg, rgba(129, 140, 248, 0.15) 0%, rgba(129, 140, 248, 0.03) 100%);
-  --sidebar-active-border: rgba(129, 140, 248, 0.25);
-  --sidebar-active-glow: rgba(129, 140, 248, 0.05);
-}
-
-[data-theme="gold"] {
-  /* Multi-shade Gold Theme (Premium) */
+  /* Default Gold Theme (Premium) */
   --primary: #d4af37;
   --primary-hover: #c59b5f;
   --primary-grad: linear-gradient(135deg, #d4af37 0%, #a48122 100%);
@@ -67,6 +12,11 @@
   --text-main: #ffffff;
   --text-muted: #a0a0a0;
   --border-color: #333333;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --info: #bda6ff;
+  --pink: #ffb3c6;
   --chart-bg: #121212;
 
   /* Sidebar */
@@ -77,30 +27,8 @@
   --sidebar-active-bg: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.03) 100%);
   --sidebar-active-border: rgba(212, 175, 55, 0.25);
   --sidebar-active-glow: rgba(212, 175, 55, 0.05);
-}
 
-[data-theme="sapphire"] {
-  /* Premium Midnight Sapphire Theme */
-  --primary: #38bdf8; /* Electric Blue */
-  --primary-hover: #0ea5e9;
-  --primary-grad: linear-gradient(135deg, #38bdf8 0%, #0369a1 100%);
-  --primary-glow: rgba(56, 189, 248, 0.35);
-  --primary-text: #0f172a;
-  --bg-main: #020617; /* Deep Navy Black */
-  --bg-surface: #0f172a; /* Slate 900 */
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --border-color: #1e293b;
-  --chart-bg: #020617;
-
-  /* Sidebar */
-  --sidebar-bg: #0f172a;
-  --sidebar-text: #f8fafc;
-  --sidebar-text-muted: #94a3b8;
-  --sidebar-border: #1e293b;
-  --sidebar-active-bg: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(56, 189, 248, 0.03) 100%);
-  --sidebar-active-border: rgba(56, 189, 248, 0.25);
-  --sidebar-active-glow: rgba(56, 189, 248, 0.05);
+  --card-radius: 32px;
 }
 
 * {

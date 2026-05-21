@@ -160,8 +160,8 @@ export default function Sales() {
 
   const subtotal = cart.reduce((sum, item) => sum + (item.sellingPrice * item.quantity), 0);
   const total = subtotal - (parseFloat(discount) || 0);
-  const cashReceived = isWalkIn ? total : (parseFloat(amountPaid) || 0);
-  const balanceDue = total - cashReceived;
+  const paymentReceived = isWalkIn ? total : (parseFloat(amountPaid) || 0);
+  const balanceDue = total - paymentReceived;
 
   const copyInvoice = async () => {
     if (!invoiceRef.current) return;
@@ -226,14 +226,14 @@ export default function Sales() {
           createdAt: serverTimestamp()
         });
 
-        // Save Payment (If cash received)
-        if (cashReceived > 0) {
+        // Save Payment (If amount received)
+        if (paymentReceived > 0) {
           transaction.set(paymentRef, {
             userId: user.uid,
             customerId: selectedCustomer.id || null,
             customerPhone: selectedCustomer.phone || 'Guest',
             saleId: saleRef.id,
-            amount: cashReceived,
+            amount: paymentReceived,
             type: 'Sale Payment',
             method: paymentMethod,
             createdAt: serverTimestamp()
@@ -259,7 +259,7 @@ export default function Sales() {
           setSaleCompleted({ 
             id: saleRef.id, 
             total, 
-            amountPaid: cashReceived, 
+            amountPaid: paymentReceived, 
             balanceDue, 
             customerName: selectedCustomer.name || 'Walk-in Customer',
             items: cart 
@@ -347,20 +347,130 @@ export default function Sales() {
               <input type="text" placeholder="Search products..." className="input-field" style={{ width: '100%', paddingLeft: '3rem', borderRadius: '12px' }} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
-            {products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).map(p => (
-              <div key={p.id} onClick={() => addToCart(p)} className="glass-panel" style={{ padding: '1.2rem', cursor: 'pointer', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ width: '100px', height: '100px', backgroundColor: 'var(--bg-main)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                  {p.imageUrl ? (
-                    <img src={p.imageUrl} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <ImageIcon size={32} color="var(--text-muted)" />
-                  )}
+          {/* Product List Header */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: '60px 2fr 1fr 1fr 1fr 90px', 
+            gap: '1rem', 
+            padding: '0.8rem 1.2rem', 
+            borderBottom: '1.5px solid var(--border-color)', 
+            fontWeight: '700', 
+            fontSize: '0.8rem', 
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            <div>Image</div>
+            <div>Product Details</div>
+            <div style={{ textAlign: 'right' }}>Cost Price</div>
+            <div style={{ textAlign: 'right' }}>Selling Price</div>
+            <div style={{ textAlign: 'center' }}>Stock</div>
+            <div style={{ textAlign: 'right' }}>Action</div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+            {products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).map(p => {
+              const isLowStock = p.stock <= (p.minStock || 5);
+              return (
+                <div 
+                  key={p.id} 
+                  onClick={() => addToCart(p)} 
+                  className="glass-panel" 
+                  style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: '60px 2fr 1fr 1fr 1fr 90px', 
+                    gap: '1rem',
+                    padding: '0.7rem 1.2rem', 
+                    cursor: 'pointer', 
+                    alignItems: 'center',
+                    transition: 'all 0.2s',
+                    borderColor: isLowStock ? 'rgba(239, 68, 68, 0.2)' : 'var(--border-color)',
+                    background: isLowStock ? 'rgba(239, 68, 68, 0.02)' : 'var(--glass-bg)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '';
+                    e.currentTarget.style.transform = '';
+                  }}
+                >
+                  {/* Small Image */}
+                  <div style={{ width: '45px', height: '45px', backgroundColor: 'var(--bg-main)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid var(--border-color)', flexShrink: 0 }}>
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <ImageIcon size={18} color="var(--text-muted)" />
+                    )}
+                  </div>
+
+                  {/* Details (Name, SKU, Volume, Brand) */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', minWidth: 0 }}>
+                    <div style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {p.name}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {p.brand && <span style={{ color: 'var(--primary)', fontWeight: '600' }}>{p.brand}</span>}
+                      {p.brand && (p.volume || p.sku) && <span>•</span>}
+                      {p.volume && <span>{p.volume}ml</span>}
+                      {p.volume && p.sku && <span>•</span>}
+                      {p.sku && <span style={{ fontFamily: 'monospace', background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: '4px', fontSize: '0.7rem' }}>{p.sku}</span>}
+                    </div>
+                  </div>
+
+                  {/* Cost Price */}
+                  <div style={{ textAlign: 'right', fontWeight: '600', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    PKR {p.costPrice?.toLocaleString() || '0'}
+                  </div>
+
+                  {/* Selling Price */}
+                  <div style={{ textAlign: 'right', fontWeight: '700', fontSize: '0.9rem', color: 'var(--primary)' }}>
+                    PKR {p.sellingPrice?.toLocaleString() || '0'}
+                  </div>
+
+                  {/* Stock Quantity */}
+                  <div style={{ textAlign: 'center' }}>
+                    <span style={{ 
+                      display: 'inline-block',
+                      padding: '0.2rem 0.5rem', 
+                      borderRadius: '6px', 
+                      fontSize: '0.75rem', 
+                      fontWeight: '700',
+                      backgroundColor: isLowStock ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.12)',
+                      color: isLowStock ? '#ef4444' : '#22c55e',
+                      border: `1px solid ${isLowStock ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)'}`
+                    }}>
+                      {p.stock} units
+                    </span>
+                  </div>
+
+                  {/* Add to Cart button */}
+                  <div style={{ textAlign: 'right' }}>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addToCart(p);
+                      }}
+                      className="btn-primary" 
+                      style={{ 
+                        padding: '0.35rem 0.8rem', 
+                        borderRadius: '8px', 
+                        fontSize: '0.75rem',
+                        fontWeight: '700',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                        cursor: 'pointer',
+                        margin: 0
+                      }}
+                    >
+                      <Plus size={14} /> Add
+                    </button>
+                  </div>
                 </div>
-                <div style={{ fontWeight: '700', fontSize: '0.9rem', marginTop: '0.5rem' }}>{p.name}</div>
-                <div style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '0.85rem' }}>PKR {p.sellingPrice}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -435,7 +545,7 @@ export default function Sales() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                <div><div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Discount</div><input type="number" className="input-field w-full" value={discount} onChange={e => setDiscount(e.target.value)} /></div>
                {!isWalkIn && (
-                 <div><div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Naqad Diye</div><input type="number" className="input-field w-full" value={amountPaid} onChange={e => setAmountPaid(e.target.value)} placeholder={total} /></div>
+                 <div><div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Amount Paid (Cash / Bank)</div><input type="number" className="input-field w-full" value={amountPaid} onChange={e => setAmountPaid(e.target.value)} placeholder={total} /></div>
                )}
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.3rem', fontWeight: 'bold', marginBottom: '1.2rem' }}><span>Total</span><span style={{ color: 'var(--primary)' }}>PKR {total}</span></div>
