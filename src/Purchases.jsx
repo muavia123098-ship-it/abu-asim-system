@@ -101,9 +101,12 @@ const [isBillModalOpen, setIsBillModalOpen] = useState(false);
     try {
       const batch = writeBatch(db);
       const totalPurchaseAmount = cartItems.reduce((sum, item) => sum + item.total, 0);
-
       // 1. Create Purchase Records & Update Stock
+      const paid = parseFloat(amountPaid) || 0;
       for (const item of cartItems) {
+        const itemPaid = totalPurchaseAmount > 0 ? parseFloat(((item.total / totalPurchaseAmount) * paid).toFixed(2)) : 0;
+        const itemDues = parseFloat((item.total - itemPaid).toFixed(2));
+
         // Record individual purchase entry
         const purchaseRef = doc(collection(db, 'purchases'));
         batch.set(purchaseRef, {
@@ -114,6 +117,9 @@ const [isBillModalOpen, setIsBillModalOpen] = useState(false);
           quantity: item.quantity,
           costPrice: item.costPrice,
           totalCost: item.total,
+          amountPaid: itemPaid,
+          dues: itemDues,
+          paymentMethod: paymentMethod,
           date: purchaseDate,
           userId: user.uid,
           createdAt: serverTimestamp()
@@ -128,7 +134,6 @@ const [isBillModalOpen, setIsBillModalOpen] = useState(false);
       }
 
       // 2. Handle Payment & Dues
-      const paid = parseFloat(amountPaid) || 0;
       const dues = Math.max(0, totalPurchaseAmount - paid);
 
       if (paid > 0) {
@@ -415,21 +420,65 @@ const [isBillModalOpen, setIsBillModalOpen] = useState(false);
       </div>
 {isBillModalOpen && billPurchase && (
   <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '2rem' }}>
-    <div className="glass-panel" style={{ width: '500px', maxWidth: '100%', backgroundColor: 'var(--bg-main)', padding: '2rem', borderRadius: '12px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>Purchase Bill</h2>
-        <X onClick={() => setIsBillModalOpen(false)} style={{ cursor: 'pointer' }} />
+    <div style={{ 
+      width: '420px', 
+      padding: '2rem', 
+      backgroundColor: '#ffffff', 
+      color: '#000000', 
+      borderRadius: '16px',
+      boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+      fontFamily: "'Plus Jakarta Sans', sans-serif"
+    }}>
+      <h2 style={{ textAlign: 'center', margin: '0 0 1rem 0', fontFamily: "'Outfit', sans-serif", fontWeight: '800', letterSpacing: '0.5px', color: '#000000' }}>ABU ASIM STOCK BILL</h2>
+      
+      <div style={{ marginBottom: '1.2rem', fontSize: '0.9rem', color: '#000000', borderBottom: '1px solid #ddd', paddingBottom: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+        <div><b>Supplier:</b> {billPurchase.supplierName}</div>
+        <div><b>Date:</b> {billPurchase.date}</div>
       </div>
-      <div style={{ marginTop: '1rem' }}>
-        <p><strong>Supplier:</strong> {billPurchase.supplierName}</p>
-        <p><strong>Product:</strong> {billPurchase.productName}</p>
-        <p><strong>Quantity:</strong> {billPurchase.quantity}</p>
-        <p><strong>Unit Cost:</strong> PKR {billPurchase.costPrice}</p>
-        <p><strong>Total:</strong> PKR {billPurchase.totalCost}</p>
-        <p><strong>Amount Paid:</strong> PKR {billPurchase.amountPaid || 0}</p>
-        <p><strong>Due:</strong> PKR {Math.max(0, billPurchase.totalCost - (billPurchase.amountPaid || 0))}</p>
+      
+      <table style={{ width: '100%', marginBottom: '1.2rem', fontSize: '0.85rem', color: '#000000', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ borderBottom: '1.5px solid #000000', textAlign: 'left' }}>
+            <th style={{ padding: '0.4rem 0' }}>Item</th>
+            <th style={{ padding: '0.4rem 0', textAlign: 'center' }}>Qty</th>
+            <th style={{ padding: '0.4rem 0', textAlign: 'right' }}>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style={{ borderBottom: '1px dashed #eee' }}>
+            <td style={{ padding: '0.4rem 0', fontWeight: '500' }}>
+              {billPurchase.productName}
+              <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.1rem' }}>PKR {Number(billPurchase.costPrice).toLocaleString()} / unit</div>
+            </td>
+            <td style={{ padding: '0.4rem 0', textAlign: 'center' }}>{billPurchase.quantity}</td>
+            <td style={{ padding: '0.4rem 0', textAlign: 'right', fontWeight: '700' }}>PKR {Number(billPurchase.totalCost).toLocaleString()}</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <div style={{ textAlign: 'right', borderTop: '1.5px solid #000000', paddingTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.9rem', color: '#000000' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#444' }}>Total Cost:</span><span>PKR {Number(billPurchase.totalCost).toLocaleString()}</span></div>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#444' }}>Paid Amount (Adaigi):</span><span>PKR {Number(billPurchase.amountPaid || 0).toLocaleString()}</span></div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', fontSize: '1rem', borderTop: '1px dashed #ddd', paddingTop: '0.3rem', marginTop: '0.2rem' }}>
+          <span>Dues (Baqaya):</span><span>PKR {Number(Math.max(0, billPurchase.totalCost - (billPurchase.amountPaid || 0))).toLocaleString()}</span>
+        </div>
       </div>
-      <button className="btn-primary" style={{ marginTop: '1rem', width: '100%' }} onClick={() => window.print()}>Print</button>
+      
+      <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+        <button 
+          className="btn-primary" 
+          style={{ flex: 1, justifyContent: 'center', backgroundColor: 'var(--primary)', color: '#ffffff', border: 'none', borderRadius: '12px', fontWeight: '700', padding: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }} 
+          onClick={() => window.print()}
+        >
+          Print
+        </button>
+        <button 
+          onClick={() => setIsBillModalOpen(false)} 
+          style={{ flex: 1, backgroundColor: '#f1f1f1', color: '#000000', border: '1px solid #ddd', borderRadius: '12px', fontWeight: '700', padding: '0.8rem', cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          Close
+        </button>
+      </div>
     </div>
   </div>
 )}

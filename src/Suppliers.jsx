@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from './Layout';
 import { Search, Plus, X, Phone, MapPin, Wallet, Edit3, Trash2, AlertTriangle } from 'lucide-react';
-import { db, auth, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, where, doc, updateDoc, deleteDoc } from './db';
+import { db, auth, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, where, doc, updateDoc, deleteDoc, increment } from './db';
 
 export default function Suppliers() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -13,6 +13,12 @@ export default function Suppliers() {
   const [isLoading, setIsLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [supplierToDelete, setSupplierToDelete] = useState(null);
+
+  // Payment States
+  const [paymentSupplier, setPaymentSupplier] = useState(null);
+  const [payAmount, setPayAmount] = useState('');
+  const [payMethod, setPayMethod] = useState('Cash');
+  const [isPayLoading, setIsPayLoading] = useState(false);
 
   // Suppliers List State
   const [suppliers, setSuppliers] = useState([]);
@@ -111,6 +117,48 @@ export default function Suppliers() {
     }
   };
 
+  const handleConfirmPayment = async (e) => {
+    e.preventDefault();
+    if (!paymentSupplier || !payAmount || parseFloat(payAmount) <= 0) return;
+
+    setIsPayLoading(true);
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        alert("You must be logged in to record payments.");
+        return;
+      }
+
+      const amountToPay = parseFloat(payAmount);
+
+      // 1. Create a payment record in payments collection
+      await addDoc(collection(db, 'payments'), {
+        userId: user.uid,
+        supplierId: paymentSupplier.id,
+        supplierName: paymentSupplier.name,
+        amount: amountToPay,
+        type: 'Adaigi', // Supplier Payment
+        method: payMethod,
+        createdAt: serverTimestamp()
+      });
+
+      // 2. Decrement supplier balance
+      const supplierRef = doc(db, 'suppliers', paymentSupplier.id);
+      await updateDoc(supplierRef, {
+        balance: increment(-amountToPay)
+      });
+
+      setPaymentSupplier(null);
+      setPayAmount('');
+      setPayMethod('Cash');
+    } catch (error) {
+      console.error("Error processing payment: ", error);
+      alert("Failed to record payment. Please try again.");
+    } finally {
+      setIsPayLoading(false);
+    }
+  };
+
   const filteredSuppliers = suppliers.filter(sup => 
     sup.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     sup.phone.includes(searchTerm)
@@ -163,6 +211,37 @@ export default function Suppliers() {
                       <button onClick={() => handleEdit(supplier)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem' }} title="Edit"><Edit3 size={18} /></button>
                       <button onClick={() => handleDeleteClick(supplier)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0.25rem' }} title="Delete"><Trash2 size={18} /></button>
                     </div>
+                  </div>
+
+                  {/* Outstanding Balance Dues */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    backgroundColor: (supplier.balance || 0) > 0 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(34, 197, 94, 0.1)', 
+                    border: `1px solid ${(supplier.balance || 0) > 0 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(34, 197, 94, 0.2)'}`,
+                    padding: '0.75rem 1rem', 
+                    borderRadius: '12px',
+                    marginTop: '0.25rem'
+                  }}>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Outstanding Dues</span>
+                      <span style={{ fontSize: '1.2rem', fontWeight: '800', color: (supplier.balance || 0) > 0 ? 'var(--primary)' : '#22c55e' }}>
+                        PKR {Number(supplier.balance || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    {(supplier.balance || 0) > 0 && (
+                      <button 
+                        onClick={() => {
+                          setPaymentSupplier(supplier);
+                          setPayAmount(String(supplier.balance || 0));
+                        }}
+                        className="btn-primary" 
+                        style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', borderRadius: '8px', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                      >
+                        <Wallet size={16} /> Pay
+                      </button>
+                    )}
                   </div>
 
                 {supplier.address && (
@@ -291,6 +370,108 @@ export default function Suppliers() {
                 Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Record Supplier Payment Modal */}
+      {paymentSupplier && (
+        <div style={{ 
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+          backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div className="glass-panel" style={{ 
+            width: '450px', padding: '2.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem',
+            backgroundColor: 'var(--bg-surface)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Wallet size={24} /> Pay Supplier
+              </h2>
+              <button 
+                onClick={() => {
+                  setPaymentSupplier(null);
+                  setPayAmount('');
+                  setPayMethod('Cash');
+                }} 
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.2rem' }}
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <form style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }} onSubmit={handleConfirmPayment}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', backgroundColor: 'var(--bg-main)', padding: '1rem', borderRadius: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Supplier:</span>
+                  <span style={{ fontWeight: '700', color: 'var(--text-main)' }}>{paymentSupplier.name}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Remaining Dues:</span>
+                  <span style={{ fontWeight: '800', color: 'var(--primary)' }}>PKR {Number(paymentSupplier.balance || 0).toLocaleString()}</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Payment Method *</label>
+                <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: 'var(--bg-main)', padding: '0.25rem', borderRadius: '10px' }}>
+                  {['Cash', 'Bank'].map(m => (
+                    <button 
+                      key={m} 
+                      type="button" 
+                      onClick={() => setPayMethod(m)} 
+                      style={{ 
+                        flex: 1, 
+                        padding: '0.75rem', 
+                        fontSize: '0.9rem', 
+                        border: 'none', 
+                        borderRadius: '8px', 
+                        cursor: 'pointer', 
+                        backgroundColor: payMethod === m ? 'var(--primary)' : 'transparent', 
+                        color: payMethod === m ? 'white' : 'var(--text-muted)',
+                        fontWeight: payMethod === m ? 'bold' : 'normal',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Amount to Pay (PKR) *</label>
+                <input 
+                  type="number" 
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                  className="input-field" 
+                  placeholder="e.g., 2000" 
+                  required 
+                  min="1"
+                  max={paymentSupplier.balance || 0}
+                  style={{ padding: '0.75rem 1rem' }} 
+                />
+              </div>
+
+              <button 
+                disabled={isPayLoading || !payAmount || parseFloat(payAmount) <= 0} 
+                type="submit" 
+                className="btn-primary" 
+                style={{ 
+                  width: '100%', 
+                  justifyContent: 'center', 
+                  marginTop: '1rem', 
+                  padding: '1rem', 
+                  fontSize: '1rem', 
+                  opacity: (isPayLoading || !payAmount || parseFloat(payAmount) <= 0) ? 0.7 : 1 
+                }}
+              >
+                {isPayLoading ? 'Processing...' : 'Confirm Payment'}
+              </button>
+            </form>
           </div>
         </div>
       )}
