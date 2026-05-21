@@ -5,6 +5,7 @@ import {
   Truck, Package, DollarSign, X, CheckCircle2, Trash2, ChevronDown, ImageIcon
 } from 'lucide-react';
 import { db, auth, collection, addDoc, onSnapshot, query, where, serverTimestamp, updateDoc, doc, increment, writeBatch } from './db';
+import { toBlob } from 'html-to-image';
 
 export default function Purchases() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -19,8 +20,9 @@ export default function Purchases() {
   const [cartItems, setCartItems] = useState([]);
   const [amountPaid, setAmountPaid] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash');
-const [billPurchase, setBillPurchase] = useState(null);
-const [isBillModalOpen, setIsBillModalOpen] = useState(false);
+  const [billPurchase, setBillPurchase] = useState(null);
+  const [isBillModalOpen, setIsBillModalOpen] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
   
   // Search/Suggest State
   const [supplierSearch, setSupplierSearch] = useState('');
@@ -32,6 +34,7 @@ const [isBillModalOpen, setIsBillModalOpen] = useState(false);
 
   const supplierRef = useRef(null);
   const productRef = useRef(null);
+  const invoiceRef = useRef(null);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -164,6 +167,22 @@ const [isBillModalOpen, setIsBillModalOpen] = useState(false);
       alert("Error recording purchase");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const copyInvoice = async () => {
+    if (!invoiceRef.current) return;
+    setIsCopying(true);
+    try {
+      const blob = await toBlob(invoiceRef.current, { backgroundColor: '#ffffff', style: { color: '#000' } });
+      const item = new ClipboardItem({ 'image/png': blob });
+      await navigator.clipboard.write([item]);
+      alert("Purchase Bill copied as image to clipboard!");
+    } catch (err) {
+      console.error(err);
+      alert("Error copying bill image.");
+    } finally {
+      setIsCopying(false);
     }
   };
 
@@ -420,7 +439,7 @@ const [isBillModalOpen, setIsBillModalOpen] = useState(false);
       </div>
 {isBillModalOpen && billPurchase && (
   <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '2rem' }}>
-    <div style={{ 
+    <div ref={invoiceRef} style={{ 
       width: '420px', 
       padding: '2rem', 
       backgroundColor: '#ffffff', 
@@ -466,11 +485,12 @@ const [isBillModalOpen, setIsBillModalOpen] = useState(false);
       
       <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
         <button 
+          disabled={isCopying}
           className="btn-primary" 
           style={{ flex: 1, justifyContent: 'center', backgroundColor: 'var(--primary)', color: '#ffffff', border: 'none', borderRadius: '12px', fontWeight: '700', padding: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }} 
-          onClick={() => window.print()}
+          onClick={copyInvoice}
         >
-          Print
+          {isCopying ? 'Copying...' : 'Copy Bill'}
         </button>
         <button 
           onClick={() => setIsBillModalOpen(false)} 

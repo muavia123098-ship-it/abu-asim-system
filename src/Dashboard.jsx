@@ -470,12 +470,23 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="glass-panel" style={{ padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderLeft: '5px solid var(--primary)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                <Users size={20} color="var(--primary)" />
-                <div style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>Credit Customers</div>
+            <div className="glass-panel" style={{ 
+              padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.6rem',
+              borderLeft: '5px solid var(--primary)', backgroundColor: 'rgba(212, 175, 55, 0.03)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                  <Users size={20} color="var(--primary)" />
+                  <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Credit Customers Udhar</div>
+                </div>
+                <div style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--primary)' }}>
+                  PKR {totalAllDues.toLocaleString()}
+                </div>
               </div>
-              <div style={{ fontSize: '1.2rem', fontWeight: '800' }}>{stats.totalCustomers}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)', borderTop: '1px dashed var(--border-color)', paddingTop: '0.4rem' }}>
+                <span>Total Credit Customers:</span>
+                <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>{stats.totalCustomers} customers</span>
+              </div>
             </div>
 
             <div className="glass-panel" style={{ padding: '2rem', backgroundColor: 'var(--primary)', color: '#1a1a1a', flex: 1, position: 'relative', overflow: 'hidden' }}>
