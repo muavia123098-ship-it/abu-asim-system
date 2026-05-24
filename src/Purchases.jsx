@@ -23,6 +23,7 @@ export default function Purchases() {
   const [billPurchase, setBillPurchase] = useState(null);
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
+  const [copied, setCopied] = useState(false);
   
   // Search/Suggest State
   const [supplierSearch, setSupplierSearch] = useState('');
@@ -173,17 +174,104 @@ export default function Purchases() {
   const copyInvoice = async () => {
     if (!invoiceRef.current) return;
     setIsCopying(true);
+    setCopied(false);
     try {
-      const blob = await toBlob(invoiceRef.current, { backgroundColor: '#ffffff', style: { color: '#000' } });
+      const blob = await toBlob(invoiceRef.current, { 
+        backgroundColor: '#ffffff', 
+        style: { color: '#000' },
+        pixelRatio: 1.2, // dramatically speed up rendering on high-DPI screens
+        cacheBust: true
+      });
       const item = new ClipboardItem({ 'image/png': blob });
       await navigator.clipboard.write([item]);
-      alert("Purchase Bill copied as image to clipboard!");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
     } catch (err) {
       console.error(err);
       alert("Error copying bill image.");
     } finally {
       setIsCopying(false);
     }
+  };
+
+  const handlePrintBill = () => {
+    if (!invoiceRef.current) return;
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.bottom = '0';
+    iframe.style.right = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+    
+    const doc = iframe.contentWindow.document;
+    doc.write(`
+      <html>
+        <head>
+          <title>Stock Bill - Abu Asim</title>
+          <style>
+            body { 
+              font-family: 'Plus Jakarta Sans', sans-serif; 
+              margin: 15px; 
+              color: #000; 
+              background: #fff; 
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            h2 { text-align: center; margin: 0 0 10px 0; font-weight: 800; font-size: 18px; }
+            .meta { margin-bottom: 15px; font-size: 12px; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+            th, td { padding: 6px 0; border-bottom: 1px dashed #eee; font-size: 12px; }
+            th { border-bottom: 1.5px solid #000; text-align: left; }
+            .totals { text-align: right; margin-top: 15px; font-size: 13px; }
+            .totals-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+            .grand-total { font-weight: 800; font-size: 14px; border-top: 1px dashed #ddd; padding-top: 6px; margin-top: 4px; }
+            @page { size: auto; margin: 0mm; }
+          </style>
+        </head>
+        <body>
+          <h2>ABU ASIM STOCK BILL</h2>
+          <div class="meta">
+            <div><b>Supplier:</b> \${billPurchase ? billPurchase.supplierName : 'N/A'}</div>
+            <div><b>Date:</b> \${billPurchase ? billPurchase.date : ''}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th style="text-align: center;">Qty</th>
+                <th style="text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  \${billPurchase ? billPurchase.productName : ''}
+                  <div style="font-size: 10px; color: #666;">PKR \${billPurchase ? Number(billPurchase.costPrice).toLocaleString() : ''} / unit</div>
+                </td>
+                <td style="text-align: center;">\${billPurchase ? billPurchase.quantity : 0}</td>
+                <td style="text-align: right;">PKR \${billPurchase ? Number(billPurchase.totalCost).toLocaleString() : 0}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="totals">
+            <div class="totals-row"><span>Total Cost:</span><span>PKR \${billPurchase ? Number(billPurchase.totalCost).toLocaleString() : 0}</span></div>
+            <div class="totals-row"><span>Paid Amount:</span><span>PKR \${billPurchase ? Number(billPurchase.amountPaid || 0).toLocaleString() : 0}</span></div>
+            <div class="totals-row grand-total"><span>Dues (Baqaya):</span><span>PKR \${billPurchase ? Number(Math.max(0, billPurchase.totalCost - (billPurchase.amountPaid || 0))).toLocaleString() : 0}</span></div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(() => {
+                window.frameElement.remove();
+              }, 100);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    doc.close();
   };
 
   const resetForm = () => {
@@ -487,10 +575,44 @@ export default function Purchases() {
         <button 
           disabled={isCopying}
           className="btn-primary" 
-          style={{ flex: 1, justifyContent: 'center', backgroundColor: 'var(--primary)', color: '#ffffff', border: 'none', borderRadius: '12px', fontWeight: '700', padding: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }} 
+          style={{ 
+            flex: 1, 
+            justifyContent: 'center', 
+            backgroundColor: copied ? '#22c55e' : 'var(--primary)', 
+            color: '#ffffff', 
+            border: 'none', 
+            borderRadius: '12px', 
+            fontWeight: '700', 
+            padding: '0.8rem', 
+            cursor: 'pointer', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem',
+            transition: 'background-color 0.3s ease, transform 0.1s ease'
+          }} 
           onClick={copyInvoice}
         >
-          {isCopying ? 'Copying...' : 'Copy Bill'}
+          {isCopying ? 'Copying...' : copied ? 'Copied! ✔' : 'WhatsApp'}
+        </button>
+        <button 
+          className="btn-primary" 
+          style={{ 
+            flex: 1, 
+            justifyContent: 'center', 
+            backgroundColor: 'var(--primary)', 
+            color: '#121212',
+            border: 'none', 
+            borderRadius: '12px', 
+            fontWeight: '700', 
+            padding: '0.8rem', 
+            cursor: 'pointer', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem'
+          }} 
+          onClick={handlePrintBill}
+        >
+          Print Bill
         </button>
         <button 
           onClick={() => setIsBillModalOpen(false)} 

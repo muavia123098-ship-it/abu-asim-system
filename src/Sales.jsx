@@ -25,6 +25,7 @@ export default function Sales() {
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [saleType, setSaleType] = useState('Physical');
   const [isCopying, setIsCopying] = useState(false);
+  const [copied, setCopied] = useState(false);
   
   const invoiceRef = useRef(null);
 
@@ -33,7 +34,155 @@ export default function Sales() {
   const [scannerStatus, setScannerStatus] = useState('offline'); // offline, connected, linked
   const [sessionId, setSessionId] = useState('');
   const [lastScannedProduct, setLastScannedProduct] = useState(null);
+  const [barcodeError, setBarcodeError] = useState(null);
   const lastBarcodeTimestamp = useRef(0);
+  const lastMobileSaleTimestamp = useRef(0);
+
+  // ─── POS Remote Products Sync & Listener ───
+  useEffect(() => {
+    if (scannerEnabled && scannerStatus === 'linked' && products.length > 0 && sessionId) {
+      const dbFb = getFirebaseDb();
+      if (dbFb) {
+        set(ref(dbFb, `sessions/${sessionId}/products`), products.map(p => ({
+          id: p.id,
+          name: p.name || 'Unknown',
+          brand: p.brand || '',
+          sellingPrice: p.sellingPrice || 0,
+          costPrice: p.costPrice || 0,
+          stock: p.stock || 0,
+          sku: p.sku || '',
+          volume: p.volume || '',
+          imageUrl: p.imageUrl || '',
+          category: p.category || ''
+        }))).catch(err => console.error("Error syncing products to firebase:", err));
+      }
+    }
+  }, [products, scannerStatus, scannerEnabled, sessionId]);
+
+  useEffect(() => {
+    if (!scannerEnabled || scannerStatus !== 'linked' || !sessionId) return;
+    const dbFb = getFirebaseDb();
+    if (!dbFb) return;
+
+    const requestRef = ref(dbFb, `sessions/${sessionId}/mobile_sale_request`);
+    const handleValue = async (snap) => {
+      const saleData = snap.val();
+      if (!saleData || !saleData.timestamp || saleData.timestamp <= lastMobileSaleTimestamp.current) return;
+      lastMobileSaleTimestamp.current = saleData.timestamp;
+
+      // Securely process this remote mobile checkout!
+      await handleMobileCheckout(saleData);
+    };
+
+    onValue(requestRef, handleValue);
+    return () => {
+      off(requestRef, 'value', handleValue);
+    };
+  }, [scannerStatus, scannerEnabled, sessionId, products]);
+
+  const handleMobileCheckout = async (saleData) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const mCart = saleData.cart || [];
+    const mDiscount = parseFloat(saleData.discount) || 0;
+    const mAmountPaid = parseFloat(saleData.amountPaid) || 0;
+    const mPaymentMethod = saleData.paymentMethod || 'Cash';
+    const mSaleType = saleData.saleType || 'Physical';
+    const mCustomer = saleData.selectedCustomer || { name: 'Walk-in Customer', phone: 'Guest', id: 'guest' };
+
+    const mSubtotal = mCart.reduce((sum, item) => sum + (item.sellingPrice * item.quantity), 0);
+    const mTotal = mSubtotal - mDiscount;
+    const mPaymentReceived = mCustomer.id === 'guest' ? mTotal : mAmountPaid;
+    const mBalanceDue = mTotal - mPaymentReceived;
+    const mProfit = mCart.reduce((sum, item) => sum + ((item.sellingPrice - item.costPrice) * item.quantity), 0) - mDiscount;
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        const saleRef = doc(collection(db, 'sales'));
+        const paymentRef = doc(collection(db, 'payments'));
+        const statsRef = doc(db, 'stats', user.uid);
+        
+        const productUpdates = [];
+        for (const item of mCart) {
+          const pRef = doc(db, 'products', item.id);
+          const pDoc = await transaction.get(pRef);
+          if (!pDoc.exists()) throw `Product ${item.name} not found!`;
+          if (pDoc.data().stock < item.quantity) throw `Insufficient stock for ${item.name}!`;
+          productUpdates.push({ ref: pRef, newStock: pDoc.data().stock - item.quantity });
+        }
+
+        const statsDoc = await transaction.get(statsRef);
+
+        transaction.set(saleRef, {
+          userId: user.uid,
+          items: mCart.map(i => ({ id: i.id, name: i.name, quantity: i.quantity, price: i.sellingPrice, cost: i.costPrice })),
+          subtotal: mSubtotal,
+          discount: mDiscount,
+          total: mTotal,
+          profit: mProfit,
+          customerName: mCustomer.name || 'Walk-in Customer',
+          customerPhone: mCustomer.phone || 'Guest',
+          customerId: mCustomer.id || null,
+          paymentMethod: mPaymentMethod,
+          saleType: mSaleType,
+          createdAt: serverTimestamp()
+        });
+
+        if (mPaymentReceived > 0) {
+          transaction.set(paymentRef, {
+            userId: user.uid,
+            customerId: mCustomer.id || null,
+            customerPhone: mCustomer.phone || 'Guest',
+            saleId: saleRef.id,
+            amount: mPaymentReceived,
+            type: 'Sale Payment',
+            method: mPaymentMethod,
+            createdAt: serverTimestamp()
+          });
+        }
+
+        productUpdates.forEach(u => transaction.update(u.ref, { stock: u.newStock }));
+
+        if (statsDoc.exists()) {
+          transaction.update(statsRef, {
+            totalSales: (statsDoc.data().totalSales || 0) + mTotal,
+            totalProfit: (statsDoc.data().totalProfit || 0) + mProfit,
+            totalOrders: (statsDoc.data().totalOrders || 0) + 1
+          });
+        } else {
+          transaction.set(statsRef, { totalSales: mTotal, totalProfit: mProfit, totalOrders: 1 });
+        }
+
+        const dbFb = getFirebaseDb();
+        if (dbFb) {
+          set(ref(dbFb, `sessions/${sessionId}/mobile_sale_result`), {
+            saleId: saleRef.id,
+            subtotal: mSubtotal,
+            discount: mDiscount,
+            total: mTotal,
+            amountPaid: mPaymentReceived,
+            balanceDue: mBalanceDue,
+            customerName: mCustomer.name || 'Walk-in Customer',
+            customerPhone: mCustomer.phone || 'Guest',
+            items: mCart,
+            timestamp: Date.now(),
+            success: true
+          });
+        }
+      });
+    } catch (err) {
+      console.error("Mobile checkout transaction failed:", err);
+      const dbFb = getFirebaseDb();
+      if (dbFb) {
+        set(ref(dbFb, `sessions/${sessionId}/mobile_sale_result`), {
+          success: false,
+          error: typeof err === 'string' ? err : "Transaction failed locally on Laptop.",
+          timestamp: Date.now()
+        });
+      }
+    }
+  };
 
   // ─── Scanner Global Listener Sync ───
   useEffect(() => {
@@ -130,7 +279,8 @@ export default function Sales() {
       // Auto-clear notification after 2s
       setTimeout(() => setLastScannedProduct(null), 2500);
     } else {
-      alert(`⚠️ Barcode "${barcodeText}" se koi product match nahi hua. Product name, brand ya volume check karein.`);
+      setBarcodeError(`⚠️ Barcode "${barcodeText}" se koi product match nahi hua. Brand/SKU check karein.`);
+      setTimeout(() => setBarcodeError(null), 4000);
     }
   };
 
@@ -166,13 +316,110 @@ export default function Sales() {
   const copyInvoice = async () => {
     if (!invoiceRef.current) return;
     setIsCopying(true);
+    setCopied(false);
     try {
-      const blob = await toBlob(invoiceRef.current, { backgroundColor: '#ffffff', style: { color: '#000' } });
+      const blob = await toBlob(invoiceRef.current, { 
+        backgroundColor: '#ffffff', 
+        style: { color: '#000' },
+        pixelRatio: 1.2, // dramatically speed up rendering on high-DPI screens
+        cacheBust: true
+      });
       const item = new ClipboardItem({ 'image/png': blob });
       await navigator.clipboard.write([item]);
-      alert("Invoice copied!");
-    } catch (err) { console.error(err); alert("Error copying."); }
-    finally { setIsCopying(false); }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) { 
+      console.error(err); 
+      alert("Error copying."); 
+    } finally { 
+      setIsCopying(false); 
+    }
+  };
+
+  const handlePrint = () => {
+    if (!invoiceRef.current) return;
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.bottom = '0';
+    iframe.style.right = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+    
+    const doc = iframe.contentWindow.document;
+    doc.write(`
+      <html>
+        <head>
+          <title>Invoice - Abu Asim</title>
+          <style>
+            body { 
+              font-family: 'Plus Jakarta Sans', sans-serif; 
+              margin: 15px; 
+              color: #000; 
+              background: #fff; 
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            h2 { text-align: center; margin: 0 0 10px 0; font-weight: 800; font-size: 18px; }
+            .meta { margin-bottom: 15px; font-size: 12px; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+            th, td { padding: 6px 0; border-bottom: 1px dashed #eee; font-size: 12px; }
+            th { border-bottom: 1.5px solid #000; text-align: left; }
+            .totals { text-align: right; margin-top: 15px; font-size: 13px; }
+            .totals-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+            .grand-total { font-weight: 800; font-size: 14px; border-top: 1px dashed #ddd; padding-top: 6px; margin-top: 4px; }
+            .footer { text-align: center; font-size: 11px; margin-top: 20px; color: #666; border-top: 1px solid #eee; padding-top: 8px; }
+            @page { size: auto; margin: 0mm; }
+          </style>
+        </head>
+        <body>
+          <h2>ABU ASIM INVOICE</h2>
+          <div class="meta">
+            <div><b>Customer:</b> \${saleCompleted ? saleCompleted.customerName : 'Walk-in Customer'}</div>
+            <div><b>Date:</b> \${new Date().toLocaleDateString('en-PK', { dateStyle: 'long' })}</div>
+            \${saleCompleted?.id ? `<div><b>Invoice #:</b> \${saleCompleted.id}</div>` : ''}
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th style="text-align: center;">Qty</th>
+                <th style="text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              \${(saleCompleted?.items || []).map(i => `
+                <tr>
+                  <td>\${i.name}</td>
+                  <td style="text-align: center;">\${i.quantity}</td>
+                  <td style="text-align: right;">\${((i.sellingPrice || i.price) * i.quantity).toLocaleString()}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="totals">
+            <div class="totals-row"><span>Subtotal:</span><span>PKR \${(saleCompleted?.total + (parseFloat(discount) || 0)).toLocaleString()}</span></div>
+            \${discount > 0 ? `<div class="totals-row"><span>Discount:</span><span>-PKR \${Number(discount).toLocaleString()}</span></div>` : ''}
+            <div class="totals-row grand-total"><span>Total:</span><span>PKR \${saleCompleted?.total.toLocaleString()}</span></div>
+            <div class="totals-row"><span>Received:</span><span>PKR \${saleCompleted?.amountPaid.toLocaleString()}</span></div>
+            <div class="totals-row"><span>Baqaya:</span><span>PKR \${saleCompleted?.balanceDue.toLocaleString()}</span></div>
+          </div>
+          <div class="footer">
+            Thank you for shopping with us!
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(() => {
+                window.frameElement.remove();
+              }, 100);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    doc.close();
   };
 
   const handleCheckout = async () => {
@@ -255,18 +502,14 @@ export default function Sales() {
         }
 
         // 4. Update local state after success
-        if (!isWalkIn) {
-          setSaleCompleted({ 
-            id: saleRef.id, 
-            total, 
-            amountPaid: paymentReceived, 
-            balanceDue, 
-            customerName: selectedCustomer.name || 'Walk-in Customer',
-            items: cart 
-          });
-        } else {
-          // Sale completed silently for walk-in
-        }
+        setSaleCompleted({ 
+          id: saleRef.id, 
+          total, 
+          amountPaid: paymentReceived, 
+          balanceDue, 
+          customerName: selectedCustomer.name || 'Walk-in Customer',
+          items: cart 
+        });
       });
 
       setCart([]); setDiscount(0); setAmountPaid(''); setSelectedCustomer({ name: '', phone: '', id: '' });
@@ -339,6 +582,18 @@ export default function Sales() {
                 animation: 'fadeIn 0.3s ease'
               }}>
                 ✅ Scanned: {lastScannedProduct.name} — Added to Cart!
+              </div>
+            )}
+
+            {/* Scan Error Toast */}
+            {barcodeError && (
+              <div style={{ 
+                padding: '0.6rem 1rem', borderRadius: '8px', marginBottom: '1rem',
+                background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)',
+                color: '#ef4444', fontSize: '0.8rem', fontWeight: '600',
+                animation: 'fadeIn 0.3s ease'
+              }}>
+                {barcodeError}
               </div>
             )}
 
@@ -595,7 +850,48 @@ export default function Sales() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                  <button disabled={isCopying} className="btn-primary" style={{ flex: 1, justifyContent: 'center', backgroundColor: '#25D366', color: '#ffffff !important' }} onClick={copyInvoice}>{isCopying ? '...' : 'WhatsApp'}</button>
+                  <button 
+                    disabled={isCopying} 
+                    className="btn-primary" 
+                    style={{ 
+                      flex: 1, 
+                      justifyContent: 'center', 
+                      backgroundColor: copied ? '#22c55e' : '#25D366', 
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontWeight: '700',
+                      padding: '0.8rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      transition: 'background-color 0.3s ease'
+                    }} 
+                    onClick={copyInvoice}
+                  >
+                    {isCopying ? 'Copying...' : copied ? 'Copied! ✔' : 'WhatsApp'}
+                  </button>
+                  <button 
+                    className="btn-primary" 
+                    style={{ 
+                      flex: 1, 
+                      justifyContent: 'center', 
+                      backgroundColor: 'var(--primary)', 
+                      color: '#121212',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontWeight: '700',
+                      padding: '0.8rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }} 
+                    onClick={handlePrint}
+                  >
+                    <Printer size={16} /> Print
+                  </button>
                   <button onClick={() => setSaleCompleted(null)} style={{ flex: 1, backgroundColor: '#f1f1f1', color: '#000000', border: '1px solid #ddd', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit' }}>Close</button>
                 </div>
              </div>
