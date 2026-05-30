@@ -4,12 +4,10 @@ import {
   Search, ShoppingCart, Plus, Minus, Trash2, User, Phone, 
   CheckCircle, Printer, X, CreditCard, Banknote, Tag, 
   ChevronRight, Download, Receipt, Wallet, Image as ImageIcon,
-  Wifi, WifiOff, ScanLine
+  ScanLine
 } from 'lucide-react';
 import { db, auth, collection, addDoc, onSnapshot, query, where, serverTimestamp, updateDoc, doc, deleteDoc, getDocs, runTransaction, getDoc } from './db';
 import { toBlob } from 'html-to-image';
-import { getFirebaseDb, getSessionId, generateSessionId, scannerService } from './firebase';
-import { ref, onValue, set, onDisconnect, off } from 'firebase/database';
 
 export default function Sales() {
   const [products, setProducts] = useState([]);
@@ -29,190 +27,70 @@ export default function Sales() {
   
   const invoiceRef = useRef(null);
 
-  // ─── Scanner State ───
-  const [scannerEnabled, setScannerEnabled] = useState(false);
-  const [scannerStatus, setScannerStatus] = useState('offline'); // offline, connected, linked
-  const [sessionId, setSessionId] = useState('');
+  // ─── Direct Barcode Scanner State ───
   const [lastScannedProduct, setLastScannedProduct] = useState(null);
   const [barcodeError, setBarcodeError] = useState(null);
-  const lastBarcodeTimestamp = useRef(0);
-  const lastMobileSaleTimestamp = useRef(0);
 
-  // ─── POS Remote Products Sync & Listener ───
+  // ─── USB Barcode Scanner Auto-Detection ───
   useEffect(() => {
-    if (scannerEnabled && scannerStatus === 'linked' && products.length > 0 && sessionId) {
-      const dbFb = getFirebaseDb();
-      if (dbFb) {
-        set(ref(dbFb, `sessions/${sessionId}/products`), products.map(p => ({
-          id: p.id,
-          name: p.name || 'Unknown',
-          brand: p.brand || '',
-          sellingPrice: p.sellingPrice || 0,
-          costPrice: p.costPrice || 0,
-          stock: p.stock || 0,
-          sku: p.sku || '',
-          volume: p.volume || '',
-          imageUrl: p.imageUrl || '',
-          category: p.category || ''
-        }))).catch(err => console.error("Error syncing products to firebase:", err));
+    let buffer = '';
+    let lastKeyTime = Date.now();
+    let timings = [];
+
+    const handleKeyDown = (e) => {
+      const now = Date.now();
+      const elapsed = now - lastKeyTime;
+      lastKeyTime = now;
+
+      // Reset buffer if no key for 200ms (human typing threshold)
+      if (elapsed > 200) {
+        buffer = '';
+        timings = [];
       }
-    }
-  }, [products, scannerStatus, scannerEnabled, sessionId]);
 
-  useEffect(() => {
-    if (!scannerEnabled || scannerStatus !== 'linked' || !sessionId) return;
-    const dbFb = getFirebaseDb();
-    if (!dbFb) return;
+      // Ignore modifier keys
+      if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') {
+        return;
+      }
 
-    const requestRef = ref(dbFb, `sessions/${sessionId}/mobile_sale_request`);
-    const handleValue = async (snap) => {
-      const saleData = snap.val();
-      if (!saleData || !saleData.timestamp || saleData.timestamp <= lastMobileSaleTimestamp.current) return;
-      lastMobileSaleTimestamp.current = saleData.timestamp;
+      if (e.key === 'Enter') {
+        if (buffer.length >= 3) {
+          e.preventDefault();
+          e.stopPropagation();
+          matchAndAddToCart(buffer);
+          buffer = '';
+          timings = [];
+          return;
+        }
+      }
 
-      // Securely process this remote mobile checkout!
-      await handleMobileCheckout(saleData);
-    };
-
-    onValue(requestRef, handleValue);
-    return () => {
-      off(requestRef, 'value', handleValue);
-    };
-  }, [scannerStatus, scannerEnabled, sessionId, products]);
-
-  const handleMobileCheckout = async (saleData) => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const mCart = saleData.cart || [];
-    const mDiscount = parseFloat(saleData.discount) || 0;
-    const mAmountPaid = parseFloat(saleData.amountPaid) || 0;
-    const mPaymentMethod = saleData.paymentMethod || 'Cash';
-    const mSaleType = saleData.saleType || 'Physical';
-    const mCustomer = saleData.selectedCustomer || { name: 'Walk-in Customer', phone: 'Guest', id: 'guest' };
-
-    const mSubtotal = mCart.reduce((sum, item) => sum + (item.sellingPrice * item.quantity), 0);
-    const mTotal = mSubtotal - mDiscount;
-    const mPaymentReceived = mCustomer.id === 'guest' ? mTotal : mAmountPaid;
-    const mBalanceDue = mTotal - mPaymentReceived;
-    const mProfit = mCart.reduce((sum, item) => sum + ((item.sellingPrice - item.costPrice) * item.quantity), 0) - mDiscount;
-
-    try {
-      await runTransaction(db, async (transaction) => {
-        const saleRef = doc(collection(db, 'sales'));
-        const paymentRef = doc(collection(db, 'payments'));
-        const statsRef = doc(db, 'stats', user.uid);
+      // Accumulate printable characters
+      if (e.key.length === 1) {
+        buffer += e.key;
+        timings.push(elapsed);
         
-        const productUpdates = [];
-        for (const item of mCart) {
-          const pRef = doc(db, 'products', item.id);
-          const pDoc = await transaction.get(pRef);
-          if (!pDoc.exists()) throw `Product ${item.name} not found!`;
-          if (pDoc.data().stock < item.quantity) throw `Insufficient stock for ${item.name}!`;
-          productUpdates.push({ ref: pRef, newStock: pDoc.data().stock - item.quantity });
+        // If average timing of keys is extremely fast (< 35ms), it is an automatic scanner!
+        // We prevent default so barcode digits do not pollute active focused inputs
+        const recentTimings = timings.slice(-5);
+        const avg = recentTimings.reduce((a, b) => a + b, 0) / recentTimings.length;
+        if (timings.length >= 2 && avg < 35) {
+          e.preventDefault();
+          
+          // Remove the very first character that leaked into focused input before timing was verified
+          if (timings.length === 2) {
+            const active = document.activeElement;
+            if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+              active.value = active.value.slice(0, -1);
+              active.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          }
         }
-
-        const statsDoc = await transaction.get(statsRef);
-
-        transaction.set(saleRef, {
-          userId: user.uid,
-          items: mCart.map(i => ({ id: i.id, name: i.name, quantity: i.quantity, price: i.sellingPrice, cost: i.costPrice })),
-          subtotal: mSubtotal,
-          discount: mDiscount,
-          total: mTotal,
-          profit: mProfit,
-          customerName: mCustomer.name || 'Walk-in Customer',
-          customerPhone: mCustomer.phone || 'Guest',
-          customerId: mCustomer.id || null,
-          paymentMethod: mPaymentMethod,
-          saleType: mSaleType,
-          createdAt: serverTimestamp()
-        });
-
-        if (mPaymentReceived > 0) {
-          transaction.set(paymentRef, {
-            userId: user.uid,
-            customerId: mCustomer.id || null,
-            customerPhone: mCustomer.phone || 'Guest',
-            saleId: saleRef.id,
-            amount: mPaymentReceived,
-            type: 'Sale Payment',
-            method: mPaymentMethod,
-            createdAt: serverTimestamp()
-          });
-        }
-
-        productUpdates.forEach(u => transaction.update(u.ref, { stock: u.newStock }));
-
-        if (statsDoc.exists()) {
-          transaction.update(statsRef, {
-            totalSales: (statsDoc.data().totalSales || 0) + mTotal,
-            totalProfit: (statsDoc.data().totalProfit || 0) + mProfit,
-            totalOrders: (statsDoc.data().totalOrders || 0) + 1
-          });
-        } else {
-          transaction.set(statsRef, { totalSales: mTotal, totalProfit: mProfit, totalOrders: 1 });
-        }
-
-        const dbFb = getFirebaseDb();
-        if (dbFb) {
-          set(ref(dbFb, `sessions/${sessionId}/mobile_sale_result`), {
-            saleId: saleRef.id,
-            subtotal: mSubtotal,
-            discount: mDiscount,
-            total: mTotal,
-            amountPaid: mPaymentReceived,
-            balanceDue: mBalanceDue,
-            customerName: mCustomer.name || 'Walk-in Customer',
-            customerPhone: mCustomer.phone || 'Guest',
-            items: mCart,
-            timestamp: Date.now(),
-            success: true
-          });
-        }
-      });
-    } catch (err) {
-      console.error("Mobile checkout transaction failed:", err);
-      const dbFb = getFirebaseDb();
-      if (dbFb) {
-        set(ref(dbFb, `sessions/${sessionId}/mobile_sale_result`), {
-          success: false,
-          error: typeof err === 'string' ? err : "Transaction failed locally on Laptop.",
-          timestamp: Date.now()
-        });
       }
-    }
-  };
-
-  // ─── Scanner Global Listener Sync ───
-  useEffect(() => {
-    // Synchronize initial state
-    setScannerEnabled(scannerService.isEnabled());
-    setScannerStatus(scannerService.getStatus());
-    setSessionId(scannerService.getSessionId());
-
-    // Listen for global scanner status changes
-    const handleStatusChange = (e) => {
-      setScannerStatus(e.detail.status);
-      setSessionId(e.detail.sessionId);
     };
 
-    window.addEventListener('scanner-status-changed', handleStatusChange);
+    window.addEventListener('keydown', handleKeyDown, true); // Capture phase intercept
     return () => {
-      window.removeEventListener('scanner-status-changed', handleStatusChange);
-    };
-  }, []);
-
-  // ─── Barcode Scanned Event Listener ───
-  useEffect(() => {
-    const handleBarcodeScanned = (e) => {
-      const barcodeText = e.detail;
-      matchAndAddToCart(barcodeText);
-    };
-
-    window.addEventListener('barcode-scanned', handleBarcodeScanned);
-    return () => {
-      window.removeEventListener('barcode-scanned', handleBarcodeScanned);
+      window.removeEventListener('keydown', handleKeyDown, true);
     };
   }, [products]);
 
@@ -312,6 +190,35 @@ export default function Sales() {
   const total = subtotal - (parseFloat(discount) || 0);
   const paymentReceived = isWalkIn ? total : (parseFloat(amountPaid) || 0);
   const balanceDue = total - paymentReceived;
+
+  const shareOnWhatsApp = () => {
+    if (!saleCompleted) return;
+    
+    const text = 
+      `*ABU ASIM PERFUMERY RECEIPT*\n` +
+      `=========================\n` +
+      `*Invoice #:* ${saleCompleted.id || 'N/A'}\n` +
+      `*Date:* ${new Date().toLocaleDateString('en-PK', { dateStyle: 'medium' })}\n` +
+      `*Customer:* ${saleCompleted.customerName}\n` +
+      `-------------------------\n` +
+      `*Items:*\n` +
+      saleCompleted.items.map(item => `• ${item.name} x${item.quantity} - PKR ${((item.sellingPrice || item.price) * item.quantity).toLocaleString()}`).join('\n') + `\n` +
+      `-------------------------\n` +
+      `*Subtotal:* PKR ${(saleCompleted.total + (parseFloat(discount) || 0)).toLocaleString()}\n` +
+      (discount > 0 ? `*Discount:* -PKR ${Number(discount).toLocaleString()}\n` : '') +
+      `*Grand Total:* PKR ${saleCompleted.total.toLocaleString()}\n` +
+      `*Received:* PKR ${saleCompleted.amountPaid.toLocaleString()}\n` +
+      `*Baqaya (Change):* PKR ${saleCompleted.balanceDue.toLocaleString()}\n` +
+      `=========================\n` +
+      `Thank you for shopping with us!\n` +
+      `_Powered by Abu Asim Digital Bills_`;
+      
+    const cleanPhone = selectedCustomer.phone && selectedCustomer.phone !== 'Guest' ? selectedCustomer.phone.replace(/[^0-9]/g, '') : '';
+    const formattedPhone = cleanPhone.startsWith('0') ? '92' + cleanPhone.substring(1) : cleanPhone;
+    
+    const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`;
+    window.open(whatsappUrl, '_blank');
+  };
 
   const copyInvoice = async () => {
     if (!invoiceRef.current) return;
@@ -529,49 +436,19 @@ export default function Sales() {
           <div style={{ marginBottom: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h1 style={{ margin: 0, fontSize: '1.8rem' }}>Create New Sale</h1>
-              {/* Scanner Toggle */}
-              <button 
-                onClick={() => {
-                  const newEnabled = !scannerEnabled;
-                  setScannerEnabled(newEnabled);
-                  scannerService.setEnabled(newEnabled);
-                }} 
-                style={{ 
-                  display: 'flex', alignItems: 'center', gap: '0.5rem',
-                  padding: '0.5rem 1rem', borderRadius: '10px', border: 'none', cursor: 'pointer',
-                  backgroundColor: scannerEnabled ? 'rgba(34,197,94,0.15)' : 'var(--bg-surface)',
-                  color: scannerEnabled ? '#22c55e' : 'var(--text-muted)',
-                  fontWeight: '600', fontSize: '0.8rem', transition: 'all 0.2s'
-                }}
-              >
-                <ScanLine size={18} />
-                {scannerEnabled ? 'Scanner ON' : 'Scanner OFF'}
-              </button>
-            </div>
-
-            {/* Scanner Status Bar */}
-            {scannerEnabled && (
+              {/* USB Barcode Scanner Status Indicator */}
               <div style={{ 
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '0.7rem 1rem', borderRadius: '10px', marginBottom: '1rem',
-                background: scannerStatus === 'linked' ? 'rgba(34,197,94,0.08)' : 'rgba(212,175,55,0.08)',
-                border: `1px solid ${scannerStatus === 'linked' ? 'rgba(34,197,94,0.3)' : 'rgba(212,175,55,0.3)'}`,
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.5rem 1rem', borderRadius: '10px',
+                backgroundColor: 'rgba(34,197,94,0.15)',
+                color: '#22c55e',
+                fontWeight: '700', fontSize: '0.8rem',
+                border: '1px solid rgba(34,197,94,0.3)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  {scannerStatus === 'linked' ? <Wifi size={16} color="#22c55e" /> : <WifiOff size={16} color="var(--primary)" />}
-                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: scannerStatus === 'linked' ? '#22c55e' : 'var(--primary)' }}>
-                    {scannerStatus === 'linked' ? '📱 Mobile Scanner Connected' : scannerStatus === 'connected' ? '⏳ Waiting for Mobile...' : '❌ Offline'}
-                  </span>
-                </div>
-                <div style={{ 
-                  padding: '0.3rem 0.8rem', borderRadius: '6px', 
-                  background: 'var(--bg-surface)', fontSize: '0.75rem', fontWeight: '700',
-                  color: 'var(--primary)', letterSpacing: '1px'
-                }}>
-                  {sessionId}
-                </div>
+                <ScanLine size={18} />
+                🔌 USB Scanner Ready
               </div>
-            )}
+            </div>
 
             {/* Scan Success Toast */}
             {lastScannedProduct && (
@@ -849,16 +726,41 @@ export default function Sales() {
                     <span>Baqaya:</span><span>PKR {saleCompleted.balanceDue.toLocaleString()}</span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.8rem', marginTop: '1.5rem' }}>
+                  {/* WhatsApp Text Share */}
+                  <button 
+                    className="btn-primary" 
+                    style={{ 
+                      flex: 1, 
+                      minWidth: '120px',
+                      justifyContent: 'center', 
+                      backgroundColor: '#25D366', 
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontWeight: '700',
+                      padding: '0.8rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }} 
+                    onClick={shareOnWhatsApp}
+                  >
+                    WhatsApp
+                  </button>
+                  
+                  {/* Copy Image */}
                   <button 
                     disabled={isCopying} 
                     className="btn-primary" 
                     style={{ 
                       flex: 1, 
+                      minWidth: '120px',
                       justifyContent: 'center', 
-                      backgroundColor: copied ? '#22c55e' : '#25D366', 
-                      color: '#ffffff',
-                      border: 'none',
+                      backgroundColor: copied ? '#22c55e' : 'rgba(255,255,255,0.05)', 
+                      color: copied ? '#ffffff' : 'var(--text-main)',
+                      border: '1px solid var(--border-color)',
                       borderRadius: '12px',
                       fontWeight: '700',
                       padding: '0.8rem',
@@ -870,12 +772,15 @@ export default function Sales() {
                     }} 
                     onClick={copyInvoice}
                   >
-                    {isCopying ? 'Copying...' : copied ? 'Copied! ✔' : 'WhatsApp'}
+                    {isCopying ? 'Copying...' : copied ? 'Copied! ✔' : 'Copy Image'}
                   </button>
+                  
+                  {/* Print */}
                   <button 
                     className="btn-primary" 
                     style={{ 
                       flex: 1, 
+                      minWidth: '120px',
                       justifyContent: 'center', 
                       backgroundColor: 'var(--primary)', 
                       color: '#121212',
@@ -892,7 +797,24 @@ export default function Sales() {
                   >
                     <Printer size={16} /> Print
                   </button>
-                  <button onClick={() => setSaleCompleted(null)} style={{ flex: 1, backgroundColor: '#f1f1f1', color: '#000000', border: '1px solid #ddd', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit' }}>Close</button>
+                  
+                  {/* Close and New Sale */}
+                  <button 
+                    onClick={() => setSaleCompleted(null)} 
+                    style={{ 
+                      flex: '1 1 100%', 
+                      backgroundColor: 'rgba(255,255,255,0.05)', 
+                      color: 'var(--text-main)', 
+                      border: '1px solid var(--border-color)', 
+                      borderRadius: '12px', 
+                      fontWeight: '700', 
+                      padding: '0.8rem',
+                      cursor: 'pointer', 
+                      fontFamily: 'inherit' 
+                    }}
+                  >
+                    New Sale
+                  </button>
                 </div>
              </div>
           </div>

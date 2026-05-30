@@ -15,16 +15,11 @@ import Settings from './Settings';
 import SplashScreen from './SplashScreen';
 import ErrorBoundary from './ErrorBoundary';
 import ActivationLock from './ActivationLock';
-import { scannerService } from './firebase';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [alertInfo, setAlertInfo] = useState({ show: false, message: '', onClose: null });
   const [isActivated, setIsActivated] = useState(localStorage.getItem('abu_asim_system_activated') === 'true');
-
-  useEffect(() => {
-    scannerService.init();
-  }, []);
 
   useEffect(() => {
     const originalAlert = window.alert;

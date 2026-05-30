@@ -320,7 +320,7 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div style={{ padding: '2rem', flex: 1, overflowY: 'auto', backgroundColor: 'var(--bg-main)' }} className="no-scrollbar">
+      <div style={{ padding: 'var(--dashboard-padding, 2rem)', flex: 1, overflowY: 'auto', backgroundColor: 'var(--bg-main)', transition: 'padding 0.3s' }} className="no-scrollbar">
         
         {/* Header with Selectors */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
@@ -372,14 +372,14 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 'var(--grid-gap, 1.5rem)', transition: 'gap 0.3s' }}>
           
-          <div className="glass-panel" style={{ gridColumn: 'span 7', backgroundColor: '#111111', color: 'white', padding: '2rem', position: 'relative', overflow: 'hidden' }}>
+          <div className="glass-panel" style={{ gridColumn: 'span 7', minWidth: 0, backgroundColor: '#111111', color: 'white', padding: 'var(--card-padding, 2rem)', position: 'relative', overflow: 'hidden', transition: 'padding 0.3s' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
               <div>
                 <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.4rem' }}>Total Revenue</div>
-                <div style={{ fontSize: '2.8rem', fontWeight: '800', color: 'white' }}>
+                <div style={{ fontSize: 'var(--revenue-val-font-size, 2.8rem)', fontWeight: '800', color: 'white', transition: 'font-size 0.3s' }}>
                   PKR {stats.totalSales.toLocaleString()}
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)', marginTop: '0.3rem' }}>
@@ -434,17 +434,17 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div style={{ gridColumn: 'span 5', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ gridColumn: 'span 5', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 'var(--grid-gap, 1.5rem)' }}>
             <div className="glass-panel" style={{ 
-              padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.8rem',
-              borderLeft: '5px solid #22c55e', backgroundColor: 'rgba(34, 197, 94, 0.03)' 
+              padding: 'var(--card-padding, 1.2rem)', display: 'flex', flexDirection: 'column', gap: '0.8rem',
+              borderLeft: '5px solid #22c55e', backgroundColor: 'rgba(34, 197, 94, 0.03)', transition: 'all 0.3s' 
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
                   <Wallet size={20} color="#22c55e" />
                   <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Cash & Bank</div>
                 </div>
-                <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#22c55e' }}>
+                <div style={{ fontSize: 'var(--card-val-font-size, 1.3rem)', fontWeight: '800', color: '#22c55e', transition: 'font-size 0.3s' }}>
                   PKR {(getFinancials().cashInHand + getFinancials().bankCash).toLocaleString()}
                 </div>
               </div>
@@ -460,26 +460,26 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="glass-panel" style={{ padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderLeft: '5px solid #f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.05)' }}>
+            <div className="glass-panel" style={{ padding: 'var(--card-padding, 1rem)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderLeft: '5px solid #f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.05)', transition: 'all 0.3s' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
                 <AlertCircle size={20} color="#f59e0b" />
                 <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Due Amount (Purchases)</div>
               </div>
-              <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#f59e0b' }}>
+              <div style={{ fontSize: 'var(--card-val-font-size, 1.3rem)', fontWeight: '800', color: '#f59e0b', transition: 'font-size 0.3s' }}>
                 PKR {(stats.totalAllPurchases - stats.totalSupplierPayments).toLocaleString()}
               </div>
             </div>
 
             <div className="glass-panel" style={{ 
-              padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.6rem',
-              borderLeft: '5px solid var(--primary)', backgroundColor: 'rgba(212, 175, 55, 0.03)'
+              padding: 'var(--card-padding, 1.2rem)', display: 'flex', flexDirection: 'column', gap: '0.6rem',
+              borderLeft: '5px solid var(--primary)', backgroundColor: 'rgba(212, 175, 55, 0.03)', transition: 'all 0.3s'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
                   <Users size={20} color="var(--primary)" />
                   <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Credit Customers Udhar</div>
                 </div>
-                <div style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--primary)' }}>
+                <div style={{ fontSize: 'var(--card-val-font-size, 1.3rem)', fontWeight: '800', color: 'var(--primary)', transition: 'font-size 0.3s' }}>
                   PKR {totalAllDues.toLocaleString()}
                 </div>
               </div>
@@ -489,9 +489,9 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="glass-panel" style={{ padding: '2rem', backgroundColor: 'var(--primary)', color: '#1a1a1a', flex: 1, position: 'relative', overflow: 'hidden' }}>
+            <div className="glass-panel" style={{ padding: 'var(--card-padding, 2rem)', backgroundColor: 'var(--primary)', color: '#1a1a1a', flex: 1, position: 'relative', overflow: 'hidden', transition: 'all 0.3s' }}>
               <div style={{ fontSize: '1rem', fontWeight: '600', opacity: 0.7 }}>Net Profit</div>
-              <div style={{ fontSize: '2.5rem', fontWeight: '900', margin: '0.5rem 0' }}>
+              <div style={{ fontSize: 'var(--profit-val-font-size, 2.5rem)', fontWeight: '900', margin: '0.5rem 0', transition: 'font-size 0.3s' }}>
                 PKR {getFinancials().netProfit.toLocaleString()}
               </div>
               <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Sales Profit - Expenses</p>

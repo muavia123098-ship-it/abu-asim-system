@@ -29,6 +29,15 @@
   --sidebar-active-glow: rgba(212, 175, 55, 0.05);
 
   --card-radius: 32px;
+
+  /* Responsive Variables */
+  --sidebar-width: 250px;
+  --dashboard-padding: 2rem;
+  --grid-gap: 1.5rem;
+  --card-padding: 2rem;
+  --revenue-val-font-size: 2.8rem;
+  --profit-val-font-size: 2.5rem;
+  --card-val-font-size: 1.3rem;
 }
 
 * {
@@ -156,4 +165,90 @@ h1, h2, h3, h4, h5, h6 {
   0% { width: 0%; }
   40% { width: 60%; }
   100% { width: 100%; }
+}
+
+/* Tablet and Smaller Desktop View (<= 1024px) */
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width: 80px;
+    --dashboard-padding: 1.25rem;
+    --grid-gap: 1rem;
+    --card-padding: 1.25rem;
+    --revenue-val-font-size: 2rem;
+    --profit-val-font-size: 1.7rem;
+    --card-val-font-size: 1.05rem;
+    --card-radius: 24px;
+  }
+
+  .sidebar-text {
+    display: none !important;
+  }
+
+  /* Center the branding container elements and collapse logo */
+  .branding-container {
+    justify-content: center !important;
+    padding: 1.25rem 0.5rem !important;
+  }
+
+  .branding-container img {
+    width: 45px !important;
+    height: 45px !important;
+  }
+
+  /* Center navigation item icons */
+  aside nav {
+    align-items: center !important;
+    padding: 1rem 0.5rem !important;
+  }
+
+  aside nav button {
+    justify-content: center !important;
+    padding: 0.85rem 0 !important;
+    border-left-width: 1px !important; /* Retain nice subtle border transition */
+  }
+
+  aside nav button span:first-child {
+    margin: 0 !important;
+  }
+
+  /* Adjust profile container layout for collapsed view */
+  .profile-container {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    padding: 0.75rem 0.25rem !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .profile-container > div:first-child {
+    justify-content: center !important;
+    margin: 0 !important;
+    gap: 0 !important;
+  }
+
+  .profile-container button {
+    margin: 0 !important;
+    padding: 0.4rem !important;
+  }
+  
+  /* Make sure the low stock cards, top items and stats scale properly */
+  .glass-panel h1, .glass-panel h2 {
+    font-size: 1.25rem !important;
+  }
+}
+
+/* Mobile Portrait Stacked Layout (<= 768px) */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 70px;
+    --dashboard-padding: 1rem;
+    --grid-gap: 1rem;
+    --card-padding: 1rem;
+  }
+
+  /* Stack grid items on small mobile screens */
+  .glass-panel[style*="gridColumn"], 
+  div[style*="gridColumn"] {
+    grid-column: span 12 !important;
+  }
 }

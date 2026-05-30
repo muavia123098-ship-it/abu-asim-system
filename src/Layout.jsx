@@ -43,18 +43,19 @@ export default function Layout({ children }) {
       
       {/* Sidebar (Theme Responsive) */}
       <aside style={{ 
-        width: '250px', 
+        width: 'var(--sidebar-width, 250px)', 
         backgroundColor: 'var(--sidebar-bg)', 
         display: 'flex', 
         flexDirection: 'column', 
         flexShrink: 0, 
         color: 'var(--sidebar-text)',
-        borderRight: '1px solid var(--sidebar-border)'
+        borderRight: '1px solid var(--sidebar-border)',
+        transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
       }}>
-        <div style={{ padding: '1.25rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid var(--sidebar-border)' }}>
-          <img src="/logo.png" alt="Logo" style={{ width: '75px', height: '75px', objectFit: 'contain', filter: 'drop-shadow(0 0 5px rgba(212,175,55,0.4))' }} 
+        <div className="branding-container" style={{ padding: '1.25rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid var(--sidebar-border)', transition: 'all 0.3s' }}>
+          <img src="/logo.png" alt="Logo" style={{ width: '75px', height: '75px', objectFit: 'contain', filter: 'drop-shadow(0 0 5px rgba(212,175,55,0.4))', transition: 'all 0.3s' }} 
                onError={(e) => { e.target.style.display = 'none'; }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="sidebar-text" style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{ fontSize: '1.3rem', fontWeight: '800', margin: '0 0 0.1rem 0', color: 'var(--sidebar-text)', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>Abu Asim</h2>
             <div style={{ 
               fontSize: '0.65rem', 
@@ -97,7 +98,7 @@ export default function Layout({ children }) {
         </nav>
 
         <div style={{ padding: '1rem', borderTop: '1px solid var(--sidebar-border)' }}>
-          <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '0.75rem', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="profile-container" style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '0.75rem', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.3s' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
               {currentUser?.photoURL ? (
                 <img src={currentUser.photoURL} alt="Profile" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--primary)' }} />
@@ -106,7 +107,7 @@ export default function Layout({ children }) {
                   <User size={18} />
                 </div>
               )}
-              <div style={{ overflow: 'hidden' }}>
+              <div className="sidebar-text" style={{ overflow: 'hidden' }}>
                 <div style={{ fontWeight: '600', fontSize: '0.85rem', color: 'var(--sidebar-text)', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{currentUser?.displayName || 'Admin User'}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--sidebar-text-muted)', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{currentUser?.email || 'admin@abuasim.com'}</div>
               </div>
@@ -194,7 +195,7 @@ function NavItem({ icon, label, active, onClick }) {
       }}>
         {icon}
       </span>
-      <span style={{ 
+      <span className="sidebar-text" style={{ 
         letterSpacing: '0.3px'
       }}>
         {label}
